@@ -1,0 +1,16 @@
+# derleme ciktilari
+java/build/
+java/dist/
+*.class
+*.jar
+
+# isletim sistemi
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# gelistirme ortamlari
+.idea/
+*.iml
+.vscode/
+*.swp
