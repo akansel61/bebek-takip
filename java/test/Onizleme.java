@@ -1,5 +1,8 @@
+import com.akansel.bebektakip.depo.KayitDeposu;
+import com.akansel.bebektakip.model.BuyumeKayit;
+import com.akansel.bebektakip.model.Hatirlatici;
 import com.akansel.bebektakip.model.Kayit;
-import com.akansel.bebektakip.store.KayitDeposu;
+import com.akansel.bebektakip.model.UykuKayit;
 import com.akansel.bebektakip.ui.AnaPencere;
 import com.akansel.bebektakip.ui.YanMenu;
 
@@ -41,19 +44,24 @@ public class Onizleme {
         Path bosDizin = Files.createTempDirectory("onizleme-bos");
         KayitDeposu bos = new KayitDeposu(bosDizin);
         bos.yukle();
-        cek(bos, new String[]{YanMenu.GORUNUM_DASHBOARD, YanMenu.GORUNUM_KAYITLAR},
-                new Path[]{cikti.resolve("1-bos-dashboard.png"),
+        cek(bos, new String[]{YanMenu.GORUNUM_OZET, YanMenu.GORUNUM_KAYITLAR},
+                new Path[]{cikti.resolve("1-bos-ozet.png"),
                         cikti.resolve("2-bos-kayitlar.png")});
 
         Path doluDizin = Files.createTempDirectory("onizleme-dolu");
         KayitDeposu depo = new KayitDeposu(doluDizin);
         depo.yukle();
         ornekVeri(depo);
-        cek(depo, new String[]{YanMenu.GORUNUM_DASHBOARD, YanMenu.GORUNUM_KAYITLAR,
-                        YanMenu.GORUNUM_ISTATISTIK},
-                new Path[]{cikti.resolve("3-dashboard.png"),
+        ornekDigerVeri(depo);
+        cek(depo, new String[]{YanMenu.GORUNUM_OZET, YanMenu.GORUNUM_KAYITLAR,
+                        YanMenu.GORUNUM_UYKU, YanMenu.GORUNUM_BUYUME,
+                        YanMenu.GORUNUM_HATIRLATICI, YanMenu.GORUNUM_ISTATISTIK},
+                new Path[]{cikti.resolve("3-ozet.png"),
                         cikti.resolve("4-kayitlar.png"),
-                        cikti.resolve("5-istatistikler.png")});
+                        cikti.resolve("5-uyku.png"),
+                        cikti.resolve("6-buyume.png"),
+                        cikti.resolve("7-hatirlatici.png"),
+                        cikti.resolve("8-istatistikler.png")});
 
         System.exit(0);
     }
@@ -142,5 +150,48 @@ public class Onizleme {
         }
         depo.sirala();
         depo.kaydet();
+    }
+
+    static void ornekDigerVeri(KayitDeposu depo) {
+        LocalDate bugun = LocalDate.now();
+
+        int[][] uykular = {
+                {0, 9, 15, 10, 5}, {0, 13, 0, 14, 30},
+                {1, 12, 30, 14, 10}, {1, 20, 45, 6, 20},
+                {2, 13, 10, 15, 0}, {3, 12, 50, 14, 25},
+                {5, 13, 20, 15, 5},
+        };
+        for (int[] p : uykular) {
+            UykuKayit u = new UykuKayit();
+            u.setTarih(bugun.minusDays(p[0]));
+            u.setBaslangic(LocalTime.of(p[1], p[2]));
+            u.setBitis(LocalTime.of(p[3], p[4]));
+            depo.getUykular().add(u);
+        }
+
+        double[][] olcumler = {{0, 5.1, 58, 39.5}, {14, 4.6, 56, 38.7}, {30, 4.1, 54, 37.8}};
+        for (double[] o : olcumler) {
+            BuyumeKayit b = new BuyumeKayit();
+            b.setTarih(bugun.minusDays((long) o[0]));
+            b.setKilo(o[1]);
+            b.setBoy(o[2]);
+            b.setBasCevresi(o[3]);
+            depo.getBuyumeler().add(b);
+        }
+
+        String[] basliklar = {"D vitamini", "5'li karma aşı", "Kontrol randevusu"};
+        int[] gunler = {0, 3, 12};
+        for (int i = 0; i < basliklar.length; i++) {
+            Hatirlatici h = new Hatirlatici();
+            h.setBaslik(basliklar[i]);
+            h.setTarih(bugun.plusDays(gunler[i]));
+            h.setSaat(LocalTime.of(10, 0));
+            depo.getHatirlaticilar().add(h);
+        }
+
+        depo.sirala();
+        depo.kaydetUyku();
+        depo.kaydetBuyume();
+        depo.kaydetHatirlatici();
     }
 }

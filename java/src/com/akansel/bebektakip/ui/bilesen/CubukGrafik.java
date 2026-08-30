@@ -39,7 +39,7 @@ public class CubukGrafik extends JPanel {
 
     private final List<Satir> satirlar = new ArrayList<>();
     private Color cubukRengi = Tema.VURGU;
-    private String bosMesaj = "Gosterilecek veri yok";
+    private String bosMesaj = "Gösterilecek veri yok";
 
     public CubukGrafik() {
         setOpaque(false);

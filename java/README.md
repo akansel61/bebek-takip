@@ -2,13 +2,14 @@
 
 © 2026 by AKANSEL
 
-Bebeğin beslenme ve bez kayıtlarını tutan **saf Java (Swing)** masaüstü uygulaması.
-HTML, WebView veya tarayıcı motoru kullanılmaz; tüm arayüz native Swing
-bileşenleriyle çizilir.
+Bebeğin beslenme, bez, uyku, büyüme ve hatırlatıcı kayıtlarını tutan
+**saf Java (Swing)** masaüstü uygulaması. HTML, WebView veya tarayıcı motoru
+kullanılmaz; tüm arayüz native Swing bileşenleriyle çizilir.
 
 - **Dış bağımlılık yok.** Maven/Gradle gerekmez, indirilen hiçbir kütüphane yoktur.
   JSON okuyucu/yazıcı, ikonlar ve grafikler dahil her şey proje içinde.
-- **Veri:** kullanıcı klasöründe düz JSON dosyası + istenildiğinde CSV dışa aktarım.
+- **Veri:** kullanıcı klasöründe her veri türü için ayrı JSON dosyası +
+  istenildiğinde CSV dışa aktarım ve tam JSON yedeği.
 - **Dağıtım:** `jpackage` ile kendi Java çalışma zamanını içeren gerçek `.exe`.
 
 ---
@@ -56,9 +57,17 @@ Verdiğiniz yolda da bu karakterler bulunmamalıdır.
 
 ### Ekranlar
 
-- **Dashboard** — bugünün özeti (kayıt, toplam mama, çiş, kaka, emzirme) ve son 5 kayıt.
-- **Kayıtlar** — tüm kayıtların düzenlenebilir tablosu ve arama.
-- **İstatistikler** — son 7 günün kayıt ve mama grafikleri, genel toplamlar.
+- **Özet** — bugünün ölçümleri (kayıt, mama, çiş, kaka, emzirme, uyku, bekleyen
+  hatırlatıcı, son kilo) ve son 5 kayıt.
+- **Kayıtlar** — tüm beslenme/bez kayıtlarının düzenlenebilir tablosu ve arama.
+- **Uyku Takibi** — "Uyku Başlat" o anın saatiyle açık bir kayıt açar, "Uykuyu
+  Bitir" kapatır. Saatler tabloda elle düzeltilebilir; bitişi başlangıçtan küçük
+  girilen uyku (23:30 → 06:15) ertesi güne sayılır.
+- **Büyüme** — kilo, boy ve baş çevresi. "Yeni Ölçüm" günün tarihiyle boş satır
+  açar, değerler hücreye yazılır.
+- **Hatırlatıcılar** — aşı, ilaç, kontrol. En yakın tarihli üstte durur; soldaki
+  kutu işaretlenince tamamlanmış sayılır.
+- **İstatistikler** — son 7 günün kayıt, mama ve uyku grafikleri, genel toplamlar.
 
 ### Tabloda düzenleme
 
@@ -66,15 +75,24 @@ Verdiğiniz yolda da bu karakterler bulunmamalıdır.
 |---|---|
 | Çiş / Kaka / Sağ / Sol / Mama işaretleme | Kutuya tıklayın (veya hücreyi seçip **Boşluk**) |
 | Tarih değiştirme | Tarih hücresine tıklayın, açılan takvimden seçin |
-| Saat değiştirme | Hücreye tıklayıp `SS:DD` yazın (geçersiz saat kırmızı çerçeveyle reddedilir) |
-| Mama notu / Not | Hücreye tıklayıp yazın |
+| Saat değiştirme | Hücreye çift tıklayıp `SS:DD` yazın (geçersiz saat kırmızı çerçeveyle reddedilir) |
+| Metin ve sayı alanları | Hücreye çift tıklayıp yazın |
 | Satır silme | Satırın üstüne gelin, sağdaki çöp kutusuna tıklayın (veya **Delete**) |
+
+Aynı düzen uyku, büyüme ve hatırlatıcı tablolarında da geçerlidir.
 
 Mama miktarı, mama notundaki ilk sayıdan okunur: `120`, `120 ml`, `90ml`, `7,5`
 yazımlarının hepsi tanınır. Mama kutusu işaretli değilse miktar toplama katılmaz.
 
-Değişiklikler yazmayı bıraktıktan ~0,6 saniye sonra otomatik kaydedilir; pencere
-kapanırken de kaydedilir.
+Beslenme tablosundaki değişiklikler yazmayı bıraktıktan ~0,6 saniye sonra otomatik
+kaydedilir; öbür ekranlardaki değişiklikler anında yazılır. Pencere kapanırken de
+kaydedilir.
+
+### Sistem tepsisi
+
+Görev çubuğu tepsisindeki bebek simgesine çift tıklamak pencereyi öne getirir;
+sağ tık menüsünden pencere açılmadan yeni kayıt eklenebilir, uyku ekranına
+geçilebilir veya uygulamadan çıkılabilir.
 
 ### Klavye kısayolları
 
@@ -84,7 +102,7 @@ kapanırken de kaydedilir.
 | `Ctrl+F` | Kayıtlar ekranında aramaya git |
 | `Ctrl+S` | Hemen kaydet |
 | `Ctrl+E` | CSV olarak dışa aktar |
-| `Ctrl+1 / 2 / 3` | Dashboard / Kayıtlar / İstatistikler |
+| `Ctrl+1 … 6` | Özet / Kayıtlar / Uyku / Büyüme / Hatırlatıcılar / İstatistikler |
 | `Boşluk` | Seçili işaret kutusunu değiştir |
 | `Delete` | Seçili satırı sil |
 
@@ -92,24 +110,28 @@ kapanırken de kaydedilir.
 
 ## Veri
 
-Kayıtlar şurada tutulur:
+Her veri türü kendi dosyasında tutulur:
 
 ```
-%USERPROFILE%\.bebek-takip\kayitlar.json
+%USERPROFILE%\.bebek-takip\kayitlar.json          beslenme ve bez
+%USERPROFILE%\.bebek-takip\uykular.json           uyku
+%USERPROFILE%\.bebek-takip\buyumeler.json         büyüme ölçümleri
+%USERPROFILE%\.bebek-takip\hatirlaticilar.json    hatırlatıcılar
 ```
 
-Yazma **atomiktir**: önce `kayitlar.json.tmp` dosyasına yazılır, sonra yerine taşınır;
-bir önceki sürüm `kayitlar.json.bak` olarak saklanır. Dosya bozulursa uygulama
-çökmez, uyarı gösterip boş listeyle açılır.
+Yazma **atomiktir**: önce `.tmp` dosyasına yazılır, sonra yerine taşınır;
+bir önceki sürüm `.bak` olarak saklanır. Dosyalardan biri bozulursa uygulama
+çökmez, uyarı gösterip o listeyi boş açar; öbür veri türleri etkilenmez.
 
 **Dışa Aktar** menüsünden:
 
-- **CSV** — noktalı virgülle ayrılmış, BOM'lu UTF-8. Türkçe Excel'de çift tıklayınca
-  doğru açılır; sayısal mama miktarı ayrı bir sütun olarak da yazılır.
-- **JSON yedek** — tam yedek.
-- **JSON'dan içe aktar** — yedekleri geri yükler. Alan adlarında hem `tarih`/`saat`
-  hem de `date`/`time` yazımı tanınır. İçe aktarırken "mevcuda ekle" veya "hepsini
-  değiştir" seçebilirsiniz.
+- **CSV** — beslenme kayıtları; noktalı virgülle ayrılmış, BOM'lu UTF-8. Türkçe
+  Excel'de çift tıklayınca doğru açılır; sayısal mama miktarı ayrı bir sütun
+  olarak da yazılır.
+- **JSON yedek** — dört veri türünü birden içeren tam yedek.
+- **JSON'dan içe aktar** — yedekleri geri yükler. Eski, yalnızca beslenme içeren
+  yedekler ve tarayıcı sürümünün `date`/`time` alan adları da tanınır. İçe
+  aktarırken "mevcuda ekle" veya "hepsini değiştir" seçebilirsiniz.
 
 ---
 
@@ -119,8 +141,12 @@ bir önceki sürüm `kayitlar.json.bak` olarak saklanır. Dosya bozulursa uygula
 java/
   src/com/akansel/bebektakip/
     App.java                    giriş noktası, görünüm ve yazı tipi ayarları
-    model/Kayit.java            tek kayıt + tarih/saat/sayı çözümleme
-    store/
+    model/
+      Kayit.java                beslenme kaydı + tarih/saat/sayı çözümleme
+      UykuKayit.java            uyku kaydı, gece aşan süre hesabı
+      BuyumeKayit.java          kilo / boy / baş çevresi ölçümü
+      Hatirlatici.java          aşı, ilaç, randevu hatırlatması
+    depo/
       Json.java                 bağımlılıksız JSON okuyucu/yazıcı
       KayitDeposu.java          yükleme, atomik kaydetme, yedek, sorgular
       DisaAktarim.java          CSV ve JSON dışa/içe aktarım
@@ -128,13 +154,16 @@ java/
       Tema.java                 renkler, yazı tipleri, Türkçe biçimlendirme
       Ikonlar.java              vektör ikonlar (emoji/resim dosyası yok)
       UygulamaIkonu.java        uygulama simgesi çizimi
-      AnaPencere.java           pencere, üst şerit, menü, kısayollar, kaydetme
+      AnaPencere.java           pencere, üst şerit, menü, kısayollar, tepsi
       YanMenu.java              sol gezinme şeridi
-      DashboardPanel.java       özet ekranı
+      OzetPanel.java            özet ekranı
       KayitlarPanel.java        kayıt tablosu ekranı
+      UykuPanel.java            uyku ekranı
+      BuyumePanel.java          büyüme ekranı
+      HatirlaticiPanel.java     hatırlatıcı ekranı
       IstatistiklerPanel.java   grafikler ve toplamlar
       bilesen/                  kart, buton, arama, takvim, grafik, boş durum
-      tablo/                    tablo modeli, hücre çizicileri, tablo davranışı
+      tablo/                    tablo modelleri, hücre çizicileri, tablo davranışı
     arac/IkonUret.java          jpackage için .ico üretimi
   test/                         veri testleri, işlev testleri, ekran görüntüsü aracı
   derle.bat calistir.bat paketle.bat test.bat jdk-bul.bat
@@ -149,14 +178,17 @@ Arayüzde emoji veya resim dosyası kullanılmaz; bütün ikonlar `Graphics2D` i
 
 - Tarih girişi metin yerine **açılır takvimle** yapılır; geçersiz tarih girilemez.
 - Saat elle yazılır ama doğrulanır — geçersiz değer kırmızı çerçeveyle reddedilir.
-- Silmeden önce **onay** sorulur.
+- Silmeden önce **onay** sorulur; bu kural bütün ekranlarda aynıdır.
 - Kayıtlar tarih + saate göre **sıralı** tutulur, her kaydın kendi kimliği (`id`) vardır.
-- Tablo ekrandaki satırlardan değil **doğrudan veri modelinden** çalışır. Bu ayrım
+  Hatırlatıcılar ters yönde sıralanır: en yakın iş en üstte.
+- Tablolar ekrandaki satırlardan değil **doğrudan veri modelinden** çalışır. Bu ayrım
   önemli: arama açıkken bir hücreyi düzenlemek yalnızca o kaydı değiştirir, filtrenin
   dışında kalan kayıtlara dokunmaz.
 - Gece yarısı geçildiğinde "bugün" ölçümleri kendiliğinden tazelenir.
-- İstatistikler haftalık mama grafiği, toplam mama miktarı, kayıtlı gün sayısı ve
-  günlük ortalama içerir.
+- Uykuda bitiş saati başlangıçtan küçükse süre ertesi güne taşarak hesaplanır;
+  "Uyku Başlat" açıkken ikinci bir kayıt açılmasına izin verilmez.
+- İstatistikler haftalık mama ve uyku grafikleri, toplam mama miktarı, toplam uyku,
+  kayıtlı gün sayısı ve günlük ortalama içerir.
 
 ---
 
@@ -164,15 +196,18 @@ Arayüzde emoji veya resim dosyası kullanılmaz; bütün ikonlar `Graphics2D` i
 
 `test.bat` iki takım çalıştırır:
 
-- **Veri katmanı (63 kontrol)** — JSON gidiş-dönüşü ve kaçış dizileri, mama miktarı
+- **Veri katmanı (94 kontrol)** — JSON gidiş-dönüşü ve kaçış dizileri, mama miktarı
   çözümleme, eski alan adlarıyla (`date`/`time`) yazılmış dosyaların okunması, atomik
-  kaydetme ve yedek, bozuk dosyaya dayanıklılık, CSV kaçışları ve `.ico` yapısı.
-- **İşlevsel (34 kontrol)** — gerçek pencere ekran dışında açılır; kayıt ekleme,
+  kaydetme ve yedek, bozuk dosyaya dayanıklılık, gece yarısını aşan uyku süresi,
+  virgüllü ölçü değerleri, dört dosyanın birlikte kaydedilip yüklenmesi, CSV
+  kaçışları ve `.ico` yapısı.
+- **İşlevsel (40 kontrol)** — gerçek pencere ekran dışında açılır; kayıt ekleme,
   işaretleme, hücre düzenleme, gecikmeli kaydetmenin diske yansıması, arama, silme,
-  ekran geçişleri ve özet tablosunun 5 satır sınırı sınanır.
+  uyku/büyüme/hatırlatıcı akışları, ekran geçişleri ve özet tablosunun 5 satır
+  sınırı sınanır.
 
-`test.bat onizleme` her ekranın PNG görüntüsünü üretir (ekranın DPI ölçeği dikkate
-alınarak), böylece arayüz değişiklikleri gözle karşılaştırılabilir.
+`test.bat onizleme` sekiz ekran görüntüsünü PNG olarak üretir (ekranın DPI ölçeği
+dikkate alınarak), böylece arayüz değişiklikleri gözle karşılaştırılabilir.
 
 ---
 

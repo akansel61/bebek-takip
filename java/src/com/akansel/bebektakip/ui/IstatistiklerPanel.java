@@ -1,7 +1,8 @@
 package com.akansel.bebektakip.ui;
 
+import com.akansel.bebektakip.depo.KayitDeposu;
 import com.akansel.bebektakip.model.Kayit;
-import com.akansel.bebektakip.store.KayitDeposu;
+import com.akansel.bebektakip.model.UykuKayit;
 import com.akansel.bebektakip.ui.bilesen.CubukGrafik;
 import com.akansel.bebektakip.ui.bilesen.Kart;
 import com.akansel.bebektakip.ui.bilesen.KartIzgara;
@@ -11,6 +12,7 @@ import com.akansel.bebektakip.ui.bilesen.OlcumListesi;
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
     private final KayitDeposu depo;
     private final CubukGrafik haftalik = new CubukGrafik();
     private final CubukGrafik haftalikMama = new CubukGrafik().cubukRengi(Tema.TURUNCU);
+    private final CubukGrafik haftalikUyku = new CubukGrafik().cubukRengi(Tema.MOR);
     private final OlcumListesi genel = new OlcumListesi();
 
     public IstatistiklerPanel(KayitDeposu depo) {
@@ -38,14 +41,21 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
 
         haftalik.setBosMesaj("Son 7 günde kayıt yok");
         haftalikMama.setBosMesaj("Son 7 günde mama kaydı yok");
+        haftalikUyku.setBosMesaj("Son 7 günde uyku kaydı yok");
 
-        // Sol sütunda iki grafik alt alta, sağ sütunda genel toplamlar.
-        javax.swing.JPanel sol = new javax.swing.JPanel(new BorderLayout(0, 16));
+        // Sol sütunda üç grafik alt alta, sağ sütunda genel toplamlar.
+        JPanel altGrafikler = new JPanel(new BorderLayout(0, 16));
+        altGrafikler.setOpaque(false);
+        altGrafikler.add(kartYap("Haftalık Mama", "Son 7 gündeki toplam mama (ml/gr)",
+                haftalikMama), BorderLayout.NORTH);
+        altGrafikler.add(usteYasla(kartYap("Haftalık Uyku", "Son 7 gündeki toplam uyku",
+                haftalikUyku)), BorderLayout.CENTER);
+
+        JPanel sol = new JPanel(new BorderLayout(0, 16));
         sol.setOpaque(false);
         sol.add(kartYap("Haftalık Özet", "Son 7 gündeki kayıt sayısı", haftalik),
                 BorderLayout.NORTH);
-        sol.add(usteYasla(kartYap("Haftalık Mama", "Son 7 gündeki toplam mama (ml/gr)",
-                haftalikMama)), BorderLayout.CENTER);
+        sol.add(altGrafikler, BorderLayout.CENTER);
 
         KartIzgara izgara = new KartIzgara(320, 16);
         izgara.add(sol);
@@ -54,8 +64,8 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
     }
 
     /** Kartı bulunduğu alanın üstüne yaslar, dikeyde gerilmesini önler. */
-    private javax.swing.JPanel usteYasla(JComponent icerik) {
-        javax.swing.JPanel p = new javax.swing.JPanel(new BorderLayout());
+    private JPanel usteYasla(JComponent icerik) {
+        JPanel p = new JPanel(new BorderLayout());
         p.setOpaque(false);
         p.add(icerik, BorderLayout.NORTH);
         return p;
@@ -65,7 +75,7 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
         Kart kart = new Kart(new BorderLayout(0, 14));
         kart.setBorder(BorderFactory.createEmptyBorder(18, 20, 18, 20));
 
-        javax.swing.JPanel ust = new javax.swing.JPanel(new BorderLayout(0, 2));
+        JPanel ust = new JPanel(new BorderLayout(0, 2));
         ust.setOpaque(false);
         JLabel etiket = new JLabel(baslik);
         etiket.setFont(Tema.fontKalin(15));
@@ -89,21 +99,28 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
 
         List<CubukGrafik.Satir> gunler = new ArrayList<>();
         List<CubukGrafik.Satir> mamalar = new ArrayList<>();
+        List<CubukGrafik.Satir> uykular = new ArrayList<>();
         boolean mamaVar = false;
+        boolean uykuVar = false;
         for (int i = HAFTA_GUNU - 1; i >= 0; i--) {
             LocalDate gun = bugun.minusDays(i);
             List<Kayit> gunun = depo.gununKayitlari(gun);
             double mama = KayitDeposu.mamaToplami(gunun);
+            long uyku = depo.gununUykuSuresi(gun);
             mamaVar |= mama > 0;
+            uykuVar |= uyku > 0;
             boolean bugunMu = i == 0;
             String etiket = bugunMu ? "Bugün" : Tema.gunAdi(gun);
             gunler.add(new CubukGrafik.Satir(etiket, gunun.size(),
                     gunun.size() + " kayıt", bugunMu));
             mamalar.add(new CubukGrafik.Satir(etiket, mama,
                     Tema.sayi(mama), bugunMu));
+            uykular.add(new CubukGrafik.Satir(etiket, uyku,
+                    uyku > 0 ? Tema.sure(uyku) : "0", bugunMu));
         }
         haftalik.setSatirlar(gunler);
         haftalikMama.setSatirlar(mamaVar ? mamalar : new ArrayList<>());
+        haftalikUyku.setSatirlar(uykuVar ? uykular : new ArrayList<>());
 
         Set<LocalDate> gunKumesi = new HashSet<>();
         for (Kayit k : tumu) {
@@ -111,6 +128,11 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
         }
         int gunSayisi = gunKumesi.size();
         double toplamMama = KayitDeposu.mamaToplami(tumu);
+
+        long toplamUyku = 0;
+        for (UykuKayit u : depo.getUykular()) {
+            toplamUyku += u.sureDakika();
+        }
 
         List<OlcumListesi.Olcum> olcumler = new ArrayList<>();
         olcumler.add(new OlcumListesi.Olcum("Toplam kayıt",
@@ -125,6 +147,14 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
                 String.valueOf(KayitDeposu.say(tumu, Kayit::isEmzirme))));
         olcumler.add(new OlcumListesi.Olcum("Toplam mama miktarı",
                 Tema.sayi(toplamMama) + " ml/gr"));
+        olcumler.add(new OlcumListesi.Olcum("Uyku kaydı",
+                String.valueOf(depo.getUykular().size())));
+        olcumler.add(new OlcumListesi.Olcum("Toplam uyku",
+                toplamUyku > 0 ? Tema.sure(toplamUyku) : "0"));
+        olcumler.add(new OlcumListesi.Olcum("Büyüme ölçümü",
+                String.valueOf(depo.getBuyumeler().size())));
+        olcumler.add(new OlcumListesi.Olcum("Bekleyen hatırlatıcı",
+                String.valueOf(depo.bekleyenHatirlatici())));
         olcumler.add(new OlcumListesi.Olcum("Kayıtlı gün sayısı",
                 String.valueOf(gunSayisi)));
         olcumler.add(new OlcumListesi.Olcum("Günlük ortalama kayıt",

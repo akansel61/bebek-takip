@@ -1,13 +1,14 @@
 package com.akansel.bebektakip.ui;
 
+import com.akansel.bebektakip.depo.KayitDeposu;
+import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Kayit;
-import com.akansel.bebektakip.store.KayitDeposu;
 import com.akansel.bebektakip.ui.bilesen.BosDurum;
 import com.akansel.bebektakip.ui.bilesen.DuzButon;
+import com.akansel.bebektakip.ui.bilesen.IstatistikKarti;
 import com.akansel.bebektakip.ui.bilesen.Kart;
 import com.akansel.bebektakip.ui.bilesen.KartIzgara;
 import com.akansel.bebektakip.ui.bilesen.KaydirilabilirPanel;
-import com.akansel.bebektakip.ui.bilesen.IstatistikKarti;
 import com.akansel.bebektakip.ui.bilesen.PanelBasligi;
 import com.akansel.bebektakip.ui.tablo.KayitTabloModeli;
 import com.akansel.bebektakip.ui.tablo.KayitTablosu;
@@ -22,7 +23,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /** Özet ekranı: günlük ölçümler ve son kayıtlar. */
-public class DashboardPanel extends KaydirilabilirPanel {
+public class OzetPanel extends KaydirilabilirPanel {
 
     private static final long serialVersionUID = 1L;
 
@@ -40,13 +41,19 @@ public class DashboardPanel extends KaydirilabilirPanel {
             new IstatistikKarti("Kaka sayısı", "", Tema.KAHVE);
     private final IstatistikKarti kartEmzirme =
             new IstatistikKarti("Emzirme", "kez", Tema.MOR);
+    private final IstatistikKarti kartUyku =
+            new IstatistikKarti("Bugünkü uyku", "dakika", Tema.VURGU);
+    private final IstatistikKarti kartHatirlatici =
+            new IstatistikKarti("Bekleyen hatırlatıcı", "", Tema.KIRMIZI);
+    private final IstatistikKarti kartKilo =
+            new IstatistikKarti("Son kilo", "kg", Tema.YESIL);
 
     private final KayitTabloModeli modeli;
     private final KayitTablosu tablo;
     private final CardLayout tabloDuzeni = new CardLayout();
     private final JPanel tabloKabi = new JPanel(tabloDuzeni);
 
-    public DashboardPanel(KayitDeposu depo, Runnable tumunuGor, Consumer<Kayit> silme) {
+    public OzetPanel(KayitDeposu depo, Runnable tumunuGor, Consumer<Kayit> silme) {
         super(new BorderLayout(0, 20));
         this.depo = depo;
         setOpaque(false);
@@ -58,6 +65,9 @@ public class DashboardPanel extends KaydirilabilirPanel {
         izgara.add(kartCis);
         izgara.add(kartKaka);
         izgara.add(kartEmzirme);
+        izgara.add(kartUyku);
+        izgara.add(kartHatirlatici);
+        izgara.add(kartKilo);
         add(izgara, BorderLayout.NORTH);
 
         modeli = new KayitTabloModeli(depo.getKayitlar(), false, true);
@@ -92,12 +102,20 @@ public class DashboardPanel extends KaydirilabilirPanel {
         modeli.yenile();
         tabloDuzeni.show(tabloKabi, modeli.getRowCount() == 0 ? "bos" : "tablo");
 
-        List<Kayit> bugun = depo.gununKayitlari(LocalDate.now());
+        LocalDate bugunTarihi = LocalDate.now();
+        List<Kayit> bugun = depo.gununKayitlari(bugunTarihi);
         kartKayit.setDeger(String.valueOf(bugun.size()));
         kartMama.setDeger(Tema.sayi(KayitDeposu.mamaToplami(bugun)));
         kartCis.setDeger(String.valueOf(KayitDeposu.say(bugun, Kayit::isCis)));
         kartKaka.setDeger(String.valueOf(KayitDeposu.say(bugun, Kayit::isKaka)));
         kartEmzirme.setDeger(String.valueOf(KayitDeposu.say(bugun, Kayit::isEmzirme)));
+
+        kartUyku.setDeger(String.valueOf(depo.gununUykuSuresi(bugunTarihi)));
+        kartHatirlatici.setDeger(String.valueOf(depo.bekleyenHatirlatici()));
+
+        BuyumeKayit son = depo.sonBuyume();
+        kartKilo.setDeger(son != null && son.getKilo() > 0
+                ? Tema.sayi(son.getKilo()) : "—");
 
         revalidate();
         repaint();

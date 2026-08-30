@@ -1,6 +1,9 @@
-package com.akansel.bebektakip.store;
+package com.akansel.bebektakip.depo;
 
+import com.akansel.bebektakip.model.BuyumeKayit;
+import com.akansel.bebektakip.model.Hatirlatici;
 import com.akansel.bebektakip.model.Kayit;
+import com.akansel.bebektakip.model.UykuKayit;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -20,20 +23,23 @@ public final class DisaAktarim {
 
     private static final char AYIRAC = ';';
 
+    /** Excel'in UTF-8'i tanıması için dosya başına konan BOM işareti. */
+    private static final char BOM = (char) 0xFEFF;
+
     private static final String[] BASLIKLAR = {
             "Tarih", "Saat", "Çiş", "Kaka", "Sağ Meme", "Sol Meme",
             "Mama", "Mama Notu", "Mama Miktarı", "Not"
     };
 
     /**
-     * Kayıtları CSV olarak yazar.
+     * Beslenme kayıtlarını CSV olarak yazar.
      *
      * Türkçe Excel'de çift tıklayınca doğru açılsın diye ayraç noktalı virgül,
      * kodlama BOM'lu UTF-8.
      */
     public static void csvYaz(Path hedef, List<Kayit> kayitlar) throws IOException {
         StringBuilder sb = new StringBuilder();
-        sb.append('\uFEFF');
+        sb.append(BOM);
         for (int i = 0; i < BASLIKLAR.length; i++) {
             if (i > 0) {
                 sb.append(AYIRAC);
@@ -101,7 +107,7 @@ public final class DisaAktarim {
         return '"' + metin.replace("\"", "\"\"") + '"';
     }
 
-    /** Kayıtları yedek amaçlı JSON dosyasına yazar. */
+    /** Yalnızca beslenme kayıtlarını JSON dosyasına yazar (eski biçim). */
     public static void jsonYaz(Path hedef, List<Kayit> kayitlar) throws IOException {
         Map<String, Object> kok = new LinkedHashMap<>();
         kok.put("surum", KayitDeposu.SURUM);
@@ -116,11 +122,52 @@ public final class DisaAktarim {
     }
 
     /**
-     * JSON dosyasından kayıt okur. Hem bu uygulamanın yedeklerini hem de
-     * tarayıcı sürümünün localStorage çıktısını kabul eder.
+     * Depodaki bütün verileri (beslenme, uyku, büyüme, hatırlatıcı) tek bir
+     * yedek dosyasına yazar. İçe aktarma bu dosyayı olduğu gibi geri yükler.
+     */
+    public static void yedekYaz(Path hedef, KayitDeposu depo) throws IOException {
+        Map<String, Object> kok = new LinkedHashMap<>();
+        kok.put("surum", KayitDeposu.SURUM);
+        kok.put("uygulama", "Bebek Takip");
+        kok.put("kaydedilme", LocalDateTime.now().withNano(0).toString());
+
+        List<Object> beslenme = new ArrayList<>(depo.getKayitlar().size());
+        for (Kayit k : depo.getKayitlar()) {
+            beslenme.add(k.jsonaCevir());
+        }
+        kok.put("kayitlar", beslenme);
+
+        List<Object> uykular = new ArrayList<>(depo.getUykular().size());
+        for (UykuKayit u : depo.getUykular()) {
+            uykular.add(u.jsonaCevir());
+        }
+        kok.put("uykular", uykular);
+
+        List<Object> buyumeler = new ArrayList<>(depo.getBuyumeler().size());
+        for (BuyumeKayit b : depo.getBuyumeler()) {
+            buyumeler.add(b.jsonaCevir());
+        }
+        kok.put("buyumeler", buyumeler);
+
+        List<Object> hatirlaticilar = new ArrayList<>(depo.getHatirlaticilar().size());
+        for (Hatirlatici h : depo.getHatirlaticilar()) {
+            hatirlaticilar.add(h.jsonaCevir());
+        }
+        kok.put("hatirlaticilar", hatirlaticilar);
+
+        Files.write(hedef, Json.yaz(kok).getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * JSON dosyasından beslenme kaydı okur. Hem bu uygulamanın yedeklerini
+     * hem de tarayıcı sürümünün localStorage çıktısını kabul eder.
      */
     public static List<Kayit> jsonOku(Path kaynak) throws IOException {
-        String metin = new String(Files.readAllBytes(kaynak), StandardCharsets.UTF_8);
-        return KayitDeposu.metniCoz(metin);
+        return KayitDeposu.metniCoz(metinOku(kaynak));
+    }
+
+    /** Dosyayı UTF-8 metin olarak okur; içe aktarma bunun üstünden çözümler. */
+    public static String metinOku(Path kaynak) throws IOException {
+        return new String(Files.readAllBytes(kaynak), StandardCharsets.UTF_8);
     }
 }

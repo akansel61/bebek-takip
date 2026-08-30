@@ -114,6 +114,16 @@ public final class Tema {
         return String.format(TR, "%.1f", d);
     }
 
+    /** Dakikayı okunur süreye çevirir: 45 dk, 2 sa, 2 sa 15 dk. */
+    public static String sure(long dakika) {
+        if (dakika < 60) {
+            return dakika + " dk";
+        }
+        long sa = dakika / 60;
+        long dk = dakika % 60;
+        return dk == 0 ? sa + " sa" : sa + " sa " + dk + " dk";
+    }
+
     /** Çizim kalitesi ayarları; her paintComponent başında çağrılır. */
     public static Graphics2D kaliteAyarla(Graphics2D g) {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
