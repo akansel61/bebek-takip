@@ -9,7 +9,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 
-/** Dashboard'daki tek ölçüm kartı: başlık, büyük değer ve birim. */
+/** Özet ekranındaki tek ölçüm kartı: başlık, büyük değer ve birim. */
 public class IstatistikKarti extends Kart {
 
     private static final long serialVersionUID = 1L;
@@ -63,7 +63,7 @@ public class IstatistikKarti extends Kart {
             g2.setColor(Tema.METIN);
             FontMetrics fmDeger = g2.getFontMetrics();
             int degerY = y + fmBaslik.getHeight() + 8 + fmDeger.getAscent();
-            g2.drawString(deger, 16, degerY);
+            g2.drawString(Tema.kisalt(g2, deger, getWidth() - 32), 16, degerY);
 
             if (!birim.isEmpty()) {
                 g2.setFont(Tema.font(11));

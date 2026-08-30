@@ -1,6 +1,6 @@
 package com.akansel.bebektakip.model;
 
-import com.akansel.bebektakip.store.Json;
+import com.akansel.bebektakip.depo.Json;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -138,7 +138,8 @@ public class Kayit {
         return sayiyiCoz(getMamaNotu());
     }
 
-    static double sayiyiCoz(String metin) {
+    /** Metindeki ilk sayıyı çözer; büyüme ölçüleri de aynı yazımları kullanır. */
+    public static double sayiyiCoz(String metin) {
         if (metin == null) {
             return 0;
         }

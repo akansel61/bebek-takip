@@ -1,5 +1,8 @@
+import com.akansel.bebektakip.depo.KayitDeposu;
+import com.akansel.bebektakip.model.BuyumeKayit;
+import com.akansel.bebektakip.model.Hatirlatici;
 import com.akansel.bebektakip.model.Kayit;
-import com.akansel.bebektakip.store.KayitDeposu;
+import com.akansel.bebektakip.model.UykuKayit;
 import com.akansel.bebektakip.ui.AnaPencere;
 import com.akansel.bebektakip.ui.YanMenu;
 import com.akansel.bebektakip.ui.tablo.KayitTabloModeli;
@@ -14,6 +17,7 @@ import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -178,9 +182,36 @@ public class Islev {
         // görünüm geçişleri
         System.out.println("[Görünüm geçişi]");
         SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_ISTATISTIK));
-        SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_DASHBOARD));
+        SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_OZET));
         SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_KAYITLAR));
         kontrol("geçişler sorunsuz", 2, model.getRowCount());
+
+        // uyku, büyüme ve hatırlatıcı akışları
+        System.out.println("[Uyku / Büyüme / Hatırlatıcı]");
+        SwingUtilities.invokeAndWait(() -> {
+            UykuKayit u = new UykuKayit();
+            u.setBaslangic(LocalTime.of(13, 0));
+            u.setBitis(LocalTime.of(14, 30));
+            depo.ekleUyku(u);
+            BuyumeKayit b = new BuyumeKayit();
+            b.setKilo(4.2);
+            b.setBoy(56);
+            depo.ekleBuyume(b);
+            Hatirlatici h = new Hatirlatici();
+            h.setBaslik("Aşı randevusu");
+            depo.ekleHatirlatici(h);
+        });
+        kontrol("uyku kaydı eklendi", 1, depo.getUykular().size());
+        kontrol("uyku süresi doğru", 90L, depo.getUykular().get(0).sureDakika());
+        kontrol("ölçüm eklendi", 1, depo.getBuyumeler().size());
+        kontrol("bekleyen hatırlatıcı", 1, depo.bekleyenHatirlatici());
+        kontrol("uyku dosyası yazıldı", true,
+                Files.exists(dizin.resolve("uykular.json")));
+        SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_UYKU));
+        SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_BUYUME));
+        SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_HATIRLATICI));
+        SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_KAYITLAR));
+        kontrol("yeni ekran geçişleri sorunsuz", 2, model.getRowCount());
 
         // özet tablosu en fazla 5 satır göstermeli
         System.out.println("[Özet sınırı]");
@@ -189,7 +220,7 @@ public class Islev {
                 depo.getKayitlar().add(new Kayit());
             }
             depo.guncellendi();
-            pencere.gorunumeGec(YanMenu.GORUNUM_DASHBOARD);
+            pencere.gorunumeGec(YanMenu.GORUNUM_OZET);
         });
         kontrol("depoda 10 kayıt", 10, depo.sayi());
         kontrol("özet en fazla 5", 5, ozetModel.getRowCount());

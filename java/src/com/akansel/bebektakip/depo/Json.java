@@ -1,4 +1,4 @@
-package com.akansel.bebektakip.store;
+package com.akansel.bebektakip.depo;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -176,7 +176,7 @@ public final class Json {
 
         char bak() {
             if (bitti()) {
-                throw new JsonHatasi("Metin beklenmedik sekilde bitti");
+                throw new JsonHatasi("Metin beklenmedik şekilde bitti");
             }
             return s.charAt(konum);
         }
@@ -213,12 +213,12 @@ public final class Json {
             while (true) {
                 bosluguAtla();
                 if (bak() != '"') {
-                    throw new JsonHatasi("Anahtar metin olmali (konum " + konum + ")");
+                    throw new JsonHatasi("Anahtar metin olmalı (konum " + konum + ")");
                 }
                 String anahtar = metin();
                 bosluguAtla();
                 if (bak() != ':') {
-                    throw new JsonHatasi("Iki nokta bekleniyordu (konum " + konum + ")");
+                    throw new JsonHatasi("İki nokta bekleniyordu (konum " + konum + ")");
                 }
                 konum++;
                 m.put(anahtar, deger());
@@ -230,7 +230,7 @@ public final class Json {
                     konum++;
                     return m;
                 } else {
-                    throw new JsonHatasi("Virgul veya kapanis bekleniyordu (konum " + konum + ")");
+                    throw new JsonHatasi("Virgül veya kapanış bekleniyordu (konum " + konum + ")");
                 }
             }
         }
@@ -253,7 +253,7 @@ public final class Json {
                     konum++;
                     return l;
                 } else {
-                    throw new JsonHatasi("Virgul veya kapanis bekleniyordu (konum " + konum + ")");
+                    throw new JsonHatasi("Virgül veya kapanış bekleniyordu (konum " + konum + ")");
                 }
             }
         }
@@ -263,7 +263,7 @@ public final class Json {
             StringBuilder sb = new StringBuilder();
             while (true) {
                 if (bitti()) {
-                    throw new JsonHatasi("Kapanmamis metin");
+                    throw new JsonHatasi("Kapanmamış metin");
                 }
                 char c = s.charAt(konum++);
                 if (c == '"') {
@@ -274,7 +274,7 @@ public final class Json {
                     continue;
                 }
                 if (bitti()) {
-                    throw new JsonHatasi("Yarim kacis dizisi");
+                    throw new JsonHatasi("Yarım kaçış dizisi");
                 }
                 char k = s.charAt(konum++);
                 switch (k) {
@@ -304,20 +304,20 @@ public final class Json {
                         break;
                     case 'u':
                         if (konum + 4 > s.length()) {
-                            throw new JsonHatasi("Yarim unicode kacisi");
+                            throw new JsonHatasi("Yarım unicode kaçışı");
                         }
                         sb.append((char) Integer.parseInt(s.substring(konum, konum + 4), 16));
                         konum += 4;
                         break;
                     default:
-                        throw new JsonHatasi("Gecersiz kacis dizisi");
+                        throw new JsonHatasi("Geçersiz kaçış dizisi");
                 }
             }
         }
 
         Object sabit(String kelime, Object deger) {
             if (!s.startsWith(kelime, konum)) {
-                throw new JsonHatasi("Gecersiz deger (konum " + konum + ")");
+                throw new JsonHatasi("Geçersiz değer (konum " + konum + ")");
             }
             konum += kelime.length();
             return deger;
@@ -338,12 +338,12 @@ public final class Json {
                 }
             }
             if (bas == konum) {
-                throw new JsonHatasi("Sayi bekleniyordu (konum " + konum + ")");
+                throw new JsonHatasi("Sayı bekleniyordu (konum " + konum + ")");
             }
             try {
                 return Double.valueOf(s.substring(bas, konum));
             } catch (NumberFormatException e) {
-                throw new JsonHatasi("Gecersiz sayi");
+                throw new JsonHatasi("Geçersiz sayı");
             }
         }
     }
@@ -379,6 +379,27 @@ public final class Json {
                 }
                 if (t.equalsIgnoreCase("false") || t.equals("0") || t.equalsIgnoreCase("hayir")) {
                     return false;
+                }
+            }
+        }
+        return varsayilan;
+    }
+
+    /**
+     * Verilen anahtarlardan ilk bulunanı sayı olarak döndürür. Elle yazılmış
+     * yedeklerdeki "4,2" gibi virgüllü metinleri de kabul eder.
+     */
+    public static double sayiAl(Map<?, ?> m, double varsayilan, String... anahtarlar) {
+        for (String a : anahtarlar) {
+            Object v = m.get(a);
+            if (v instanceof Number) {
+                return ((Number) v).doubleValue();
+            }
+            if (v instanceof String) {
+                try {
+                    return Double.parseDouble(((String) v).trim().replace(',', '.'));
+                } catch (NumberFormatException yoksay) {
+                    // metin sayı değilse sıradaki anahtara bak
                 }
             }
         }

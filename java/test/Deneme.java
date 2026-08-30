@@ -1,7 +1,10 @@
+import com.akansel.bebektakip.depo.DisaAktarim;
+import com.akansel.bebektakip.depo.Json;
+import com.akansel.bebektakip.depo.KayitDeposu;
+import com.akansel.bebektakip.model.BuyumeKayit;
+import com.akansel.bebektakip.model.Hatirlatici;
 import com.akansel.bebektakip.model.Kayit;
-import com.akansel.bebektakip.store.DisaAktarim;
-import com.akansel.bebektakip.store.Json;
-import com.akansel.bebektakip.store.KayitDeposu;
+import com.akansel.bebektakip.model.UykuKayit;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -34,6 +37,10 @@ public class Deneme {
         depoTuruTesti();
         csvTesti();
         icoTesti();
+        uykuTesti();
+        buyumeTesti();
+        hatirlaticiTesti();
+        depoCokluTesti();
 
         System.out.println();
         System.out.println("Başarılı: " + basarili + "  Başarısız: " + basarisiz);
@@ -224,6 +231,131 @@ public class Deneme {
             }
         }
         kontrol("girdi ofsetleri tutarlı", true, tutarli);
+    }
+
+    static void uykuTesti() {
+        System.out.println("[Uyku]");
+        UykuKayit u = new UykuKayit();
+        u.setTarih(LocalDate.of(2026, 8, 20));
+        u.setBaslangic(LocalTime.of(13, 0));
+        u.setBitis(LocalTime.of(14, 30));
+        u.setNot("Öğle uykusu");
+        kontrol("uyku süresi", 90L, u.sureDakika());
+
+        u.setBaslangic(LocalTime.of(23, 30));
+        u.setBitis(LocalTime.of(6, 15));
+        kontrol("gece yarısını aşan süre", 405L, u.sureDakika());
+
+        UykuKayit geri = UykuKayit.jsondan(
+                (java.util.Map<?, ?>) Json.oku(Json.yaz(u.jsonaCevir())));
+        kontrol("uyku başlangıcı korundu", LocalTime.of(23, 30), geri.getBaslangic());
+        kontrol("uyku bitişi korundu", LocalTime.of(6, 15), geri.getBitis());
+        kontrol("uyku notu korundu", "Öğle uykusu", geri.getNot());
+
+        UykuKayit acik = new UykuKayit();
+        kontrol("açık uykuda süre 0", 0L, acik.sureDakika());
+        kontrol("açık uyku sürüyor", true, acik.devamEdiyor());
+        UykuKayit acikGeri = UykuKayit.jsondan(
+                (java.util.Map<?, ?>) Json.oku(Json.yaz(acik.jsonaCevir())));
+        kontrol("açık uyku korunarak okundu", true, acikGeri.devamEdiyor());
+    }
+
+    static void buyumeTesti() {
+        System.out.println("[Büyüme]");
+        BuyumeKayit b = new BuyumeKayit();
+        b.setTarih(LocalDate.of(2026, 8, 25));
+        b.setKilo(4.2);
+        b.setBoy(56);
+        b.setBasCevresi(38.5);
+        b.setNot("2. ay kontrolü");
+        BuyumeKayit geri = BuyumeKayit.jsondan(
+                (java.util.Map<?, ?>) Json.oku(Json.yaz(b.jsonaCevir())));
+        kontrol("kilo korundu", 4.2, geri.getKilo());
+        kontrol("boy korundu", 56.0, geri.getBoy());
+        kontrol("baş çevresi korundu", 38.5, geri.getBasCevresi());
+        kontrol("ölçüm notu korundu", "2. ay kontrolü", geri.getNot());
+        kontrol("ölçüm tarihi korundu", LocalDate.of(2026, 8, 25), geri.getTarih());
+
+        // elle yazılmış yedeklerdeki virgüllü değerler de okunmalı
+        java.util.Map<?, ?> elle = (java.util.Map<?, ?>) Json.oku(
+                "{\"tarih\":\"2026-08-01\",\"kilo\":\"4,2\"}");
+        kontrol("virgüllü kilo çözüldü", 4.2, BuyumeKayit.jsondan(elle).getKilo());
+    }
+
+    static void hatirlaticiTesti() {
+        System.out.println("[Hatırlatıcı]");
+        Hatirlatici h = new Hatirlatici();
+        h.setTarih(LocalDate.of(2026, 9, 15));
+        h.setSaat(LocalTime.of(10, 30));
+        h.setBaslik("KKK aşısı");
+        h.setTamamlandi(true);
+        Hatirlatici geri = Hatirlatici.jsondan(
+                (java.util.Map<?, ?>) Json.oku(Json.yaz(h.jsonaCevir())));
+        kontrol("hatırlatıcı başlığı korundu", "KKK aşısı", geri.getBaslik());
+        kontrol("tamamlandı korundu", true, geri.isTamamlandi());
+        kontrol("hatırlatıcı saati korundu", LocalTime.of(10, 30), geri.getSaat());
+
+        java.util.Map<?, ?> elle = (java.util.Map<?, ?>) Json.oku(
+                "{\"baslik\":\"D vitamini\",\"tamamlandi\":\"1\"}");
+        kontrol("metin 1 doğru sayıldı", true, Hatirlatici.jsondan(elle).isTamamlandi());
+        kontrol("varsayılan tamamlanmadı", false, new Hatirlatici().isTamamlandi());
+    }
+
+    static void depoCokluTesti() throws Exception {
+        System.out.println("[Depo - uyku/büyüme/hatırlatıcı]");
+        Path gecici = Files.createTempDirectory("bebek-coklu");
+        KayitDeposu depo = new KayitDeposu(gecici);
+        depo.yukle();
+
+        Kayit beslenme = new Kayit();
+        beslenme.setNot("beslenme kaydı");
+        depo.ekle(beslenme);
+
+        UykuKayit u = new UykuKayit();
+        u.setTarih(LocalDate.of(2026, 8, 29));
+        u.setBaslangic(LocalTime.of(13, 0));
+        u.setBitis(LocalTime.of(14, 30));
+        depo.ekleUyku(u);
+
+        BuyumeKayit b = new BuyumeKayit();
+        b.setTarih(LocalDate.of(2026, 8, 25));
+        b.setKilo(4.2);
+        b.setBoy(56);
+        depo.ekleBuyume(b);
+
+        Hatirlatici h = new Hatirlatici();
+        h.setBaslik("Aşı");
+        depo.ekleHatirlatici(h);
+        Hatirlatici h2 = new Hatirlatici();
+        h2.setBaslik("Kontrol");
+        h2.setTamamlandi(true);
+        depo.ekleHatirlatici(h2);
+
+        kontrol("uyku dosyası oluştu", true,
+                Files.exists(gecici.resolve("uykular.json")));
+        kontrol("büyüme dosyası oluştu", true,
+                Files.exists(gecici.resolve("buyumeler.json")));
+        kontrol("hatırlatıcı dosyası oluştu", true,
+                Files.exists(gecici.resolve("hatirlaticilar.json")));
+
+        KayitDeposu tekrar = new KayitDeposu(gecici);
+        tekrar.yukle();
+        kontrol("uyku geri okundu", 1, tekrar.getUykular().size());
+        kontrol("ölçüm geri okundu", 1, tekrar.getBuyumeler().size());
+        kontrol("hatırlatıcı geri okundu", 2, tekrar.getHatirlaticilar().size());
+        kontrol("bekleyen hatırlatıcı", 1, tekrar.bekleyenHatirlatici());
+        kontrol("günün uyku süresi", 90L,
+                tekrar.gununUykuSuresi(LocalDate.of(2026, 8, 29)));
+        kontrol("son ölçüm kilosu", 4.2, tekrar.sonBuyume().getKilo());
+
+        // bozuk uyku dosyası öbür verileri götürmemeli
+        Files.write(gecici.resolve("uykular.json"),
+                "{bozuk".getBytes(StandardCharsets.UTF_8));
+        KayitDeposu bozuk = new KayitDeposu(gecici);
+        bozuk.yukle();
+        kontrol("bozuk uyku dosyası yakalandı", true, bozuk.getSonHata() != null);
+        kontrol("bozuk uykuda beslenme sağlam", 1, bozuk.sayi());
+        kontrol("bozuk uykuda boş uyku listesi", 0, bozuk.getUykular().size());
     }
 
     static int oku4(byte[] b, int i) {

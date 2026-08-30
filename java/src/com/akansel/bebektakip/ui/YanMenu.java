@@ -25,8 +25,11 @@ public class YanMenu extends JPanel {
 
     private static final long serialVersionUID = 1L;
 
-    public static final String GORUNUM_DASHBOARD = "dashboard";
+    public static final String GORUNUM_OZET = "ozet";
     public static final String GORUNUM_KAYITLAR = "kayitlar";
+    public static final String GORUNUM_UYKU = "uyku";
+    public static final String GORUNUM_BUYUME = "buyume";
+    public static final String GORUNUM_HATIRLATICI = "hatirlatici";
     public static final String GORUNUM_ISTATISTIK = "istatistik";
 
     public static final int GENISLIK = 220;
@@ -49,9 +52,15 @@ public class YanMenu extends JPanel {
         gezinme.setOpaque(false);
         gezinme.setLayout(new BoxLayout(gezinme, BoxLayout.Y_AXIS));
         gezinme.setBorder(BorderFactory.createEmptyBorder(12, 8, 12, 8));
-        gezinme.add(oge(GORUNUM_DASHBOARD, "Dashboard", Ikonlar::grafik, secim));
+        gezinme.add(oge(GORUNUM_OZET, "Özet", Ikonlar::grafik, secim));
         gezinme.add(Box.createVerticalStrut(4));
         gezinme.add(oge(GORUNUM_KAYITLAR, "Kayıtlar", Ikonlar::liste, secim));
+        gezinme.add(Box.createVerticalStrut(4));
+        gezinme.add(oge(GORUNUM_UYKU, "Uyku Takibi", Ikonlar::ay, secim));
+        gezinme.add(Box.createVerticalStrut(4));
+        gezinme.add(oge(GORUNUM_BUYUME, "Büyüme", Ikonlar::cetvel, secim));
+        gezinme.add(Box.createVerticalStrut(4));
+        gezinme.add(oge(GORUNUM_HATIRLATICI, "Hatırlatıcılar", Ikonlar::zil, secim));
         gezinme.add(Box.createVerticalStrut(4));
         gezinme.add(oge(GORUNUM_ISTATISTIK, "İstatistikler", Ikonlar::trend, secim));
         gezinme.add(Box.createVerticalGlue());
@@ -62,7 +71,7 @@ public class YanMenu extends JPanel {
         add(orta, BorderLayout.CENTER);
 
         add(altBilgi(), BorderLayout.SOUTH);
-        setAktif(GORUNUM_DASHBOARD);
+        setAktif(GORUNUM_OZET);
     }
 
     private MenuOgesi oge(String anahtar, String metin, IkonCizici ikon,

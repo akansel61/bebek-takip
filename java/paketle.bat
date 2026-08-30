@@ -14,7 +14,7 @@ set "KOK=%CD%"
 chcp 65001 >nul
 
 set "AD=Bebek Takip"
-set "SURUM=1.0"
+set "SURUM=1.1"
 set "KURULUM=0"
 set "CIKTI=%USERPROFILE%\BebekTakip"
 

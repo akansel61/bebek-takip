@@ -1,6 +1,6 @@
 package com.akansel.bebektakip;
 
-import com.akansel.bebektakip.store.KayitDeposu;
+import com.akansel.bebektakip.depo.KayitDeposu;
 import com.akansel.bebektakip.ui.AnaPencere;
 import com.akansel.bebektakip.ui.Tema;
 

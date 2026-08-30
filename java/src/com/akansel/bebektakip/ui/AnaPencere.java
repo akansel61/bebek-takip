@@ -1,8 +1,11 @@
 package com.akansel.bebektakip.ui;
 
+import com.akansel.bebektakip.depo.DisaAktarim;
+import com.akansel.bebektakip.depo.KayitDeposu;
+import com.akansel.bebektakip.model.BuyumeKayit;
+import com.akansel.bebektakip.model.Hatirlatici;
 import com.akansel.bebektakip.model.Kayit;
-import com.akansel.bebektakip.store.DisaAktarim;
-import com.akansel.bebektakip.store.KayitDeposu;
+import com.akansel.bebektakip.model.UykuKayit;
 import com.akansel.bebektakip.ui.bilesen.DuzButon;
 
 import javax.swing.BorderFactory;
@@ -18,10 +21,15 @@ import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
 import javax.swing.Timer;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Desktop;
 import java.awt.Dimension;
+import java.awt.MenuItem;
+import java.awt.PopupMenu;
+import java.awt.SystemTray;
+import java.awt.TrayIcon;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -34,6 +42,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /** Ana pencere; bütün ekranların birleştiği yer. */
@@ -41,7 +50,7 @@ public class AnaPencere extends JFrame {
 
     private static final long serialVersionUID = 1L;
 
-    public static final String SURUM = "v1.0";
+    public static final String SURUM = "v1.1";
 
     private static final DateTimeFormatter SAAT_BICIMI =
             DateTimeFormatter.ofPattern("HH:mm:ss", Tema.TR);
@@ -51,16 +60,20 @@ public class AnaPencere extends JFrame {
     private final YanMenu yanMenu;
     private final CardLayout gorunumDuzeni = new CardLayout();
     private final JPanel gorunumKabi = new JPanel(gorunumDuzeni);
-    private final DashboardPanel dashboard;
+    private final OzetPanel ozetPanel;
     private final KayitlarPanel kayitlarPanel;
+    private final UykuPanel uykuPanel;
+    private final BuyumePanel buyumePanel;
+    private final HatirlaticiPanel hatirlaticiPanel;
     private final IstatistiklerPanel istatistiklerPanel;
 
     private final JLabel tarihEtiketi = new JLabel();
     private final Timer kaydetZamanlayici;
     private final Timer saatZamanlayici;
+    private TrayIcon tepsiSimgesi;
 
     private LocalDate gosterilenGun = LocalDate.now();
-    private String aktifGorunum = YanMenu.GORUNUM_DASHBOARD;
+    private String aktifGorunum = YanMenu.GORUNUM_OZET;
 
     public AnaPencere(KayitDeposu depo) {
         this.depo = depo;
@@ -75,17 +88,23 @@ public class AnaPencere extends JFrame {
         kaydetZamanlayici = new Timer(600, e -> kaydetVeOzetiTazele());
         kaydetZamanlayici.setRepeats(false);
 
-        dashboard = new DashboardPanel(depo, () -> gorunumeGec(YanMenu.GORUNUM_KAYITLAR),
+        ozetPanel = new OzetPanel(depo, () -> gorunumeGec(YanMenu.GORUNUM_KAYITLAR),
                 this::silmeyiOnayla);
         kayitlarPanel = new KayitlarPanel(depo, this::silmeyiOnayla, this::veriDegisti);
+        uykuPanel = new UykuPanel(depo);
+        buyumePanel = new BuyumePanel(depo);
+        hatirlaticiPanel = new HatirlaticiPanel(depo);
         istatistiklerPanel = new IstatistiklerPanel(depo);
 
         yanMenu = new YanMenu(SURUM, this::gorunumeGec);
 
         gorunumKabi.setOpaque(true);
         gorunumKabi.setBackground(Tema.ARKA);
-        gorunumKabi.add(kaydirmaya(dashboard), YanMenu.GORUNUM_DASHBOARD);
+        gorunumKabi.add(kaydirmaya(ozetPanel), YanMenu.GORUNUM_OZET);
         gorunumKabi.add(kayitlarPanel, YanMenu.GORUNUM_KAYITLAR);
+        gorunumKabi.add(uykuPanel, YanMenu.GORUNUM_UYKU);
+        gorunumKabi.add(buyumePanel, YanMenu.GORUNUM_BUYUME);
+        gorunumKabi.add(hatirlaticiPanel, YanMenu.GORUNUM_HATIRLATICI);
         gorunumKabi.add(kaydirmaya(istatistiklerPanel), YanMenu.GORUNUM_ISTATISTIK);
 
         JPanel ana = new JPanel(new BorderLayout());
@@ -112,9 +131,11 @@ public class AnaPencere extends JFrame {
         saatZamanlayici = new Timer(30_000, e -> gunuKontrolEt());
         saatZamanlayici.start();
 
+        sistemTepsisiniKur();
+
         tarihiGuncelle();
         tumunuYenile();
-        gorunumeGec(YanMenu.GORUNUM_DASHBOARD);
+        gorunumeGec(YanMenu.GORUNUM_OZET);
 
         if (depo.getSonHata() != null) {
             JOptionPane.showMessageDialog(this, depo.getSonHata(),
@@ -194,23 +215,88 @@ public class AnaPencere extends JFrame {
         return oge;
     }
 
+    /**
+     * Görev çubuğu tepsisine küçük bir simge koyar: çift tıklama pencereyi
+     * açar, sağ tık menüsünden yeni kayıt eklenip çıkılabilir. Tepsi
+     * desteklenmiyorsa uygulama sessizce tepsisiz çalışır.
+     */
+    private void sistemTepsisiniKur() {
+        if (!SystemTray.isSupported()) {
+            return;
+        }
+        PopupMenu menu = new PopupMenu();
+
+        MenuItem goster = new MenuItem("Pencereyi Göster");
+        goster.addActionListener(e -> pencereyiGoster());
+        menu.add(goster);
+        menu.addSeparator();
+
+        MenuItem yeniOge = new MenuItem("Yeni Kayıt");
+        yeniOge.addActionListener(e -> {
+            pencereyiGoster();
+            yeniKayit();
+        });
+        menu.add(yeniOge);
+
+        MenuItem uyku = new MenuItem("Uyku Takibi");
+        uyku.addActionListener(e -> {
+            pencereyiGoster();
+            gorunumeGec(YanMenu.GORUNUM_UYKU);
+        });
+        menu.add(uyku);
+        menu.addSeparator();
+
+        MenuItem cikis = new MenuItem("Çıkış");
+        cikis.addActionListener(e -> kapat());
+        menu.add(cikis);
+
+        TrayIcon simge = new TrayIcon(UygulamaIkonu.olustur(16), "Bebek Takip", menu);
+        simge.setImageAutoSize(true);
+        simge.addActionListener(e -> pencereyiGoster());
+        try {
+            SystemTray.getSystemTray().add(simge);
+            tepsiSimgesi = simge;
+        } catch (AWTException e) {
+            tepsiSimgesi = null;
+        }
+    }
+
+    private void pencereyiGoster() {
+        setVisible(true);
+        setState(NORMAL);
+        toFront();
+        requestFocus();
+    }
+
     public void gorunumeGec(String anahtar) {
         aktifGorunum = anahtar;
         yanMenu.setAktif(anahtar);
         gorunumDuzeni.show(gorunumKabi, anahtar);
-        if (YanMenu.GORUNUM_DASHBOARD.equals(anahtar)) {
-            dashboard.yenile();
+        if (YanMenu.GORUNUM_OZET.equals(anahtar)) {
+            ozetPanel.yenile();
         } else if (YanMenu.GORUNUM_KAYITLAR.equals(anahtar)) {
             depo.sirala();
             kayitlarPanel.yenile();
+        } else if (YanMenu.GORUNUM_UYKU.equals(anahtar)) {
+            depo.sirala();
+            uykuPanel.yenile();
+        } else if (YanMenu.GORUNUM_BUYUME.equals(anahtar)) {
+            depo.sirala();
+            buyumePanel.yenile();
+        } else if (YanMenu.GORUNUM_HATIRLATICI.equals(anahtar)) {
+            depo.sirala();
+            hatirlaticiPanel.yenile();
         } else {
             istatistiklerPanel.yenile();
         }
     }
 
     private void tumunuYenile() {
-        dashboard.yenile();
+        ozetPanel.yenile();
         kayitlarPanel.yenile();
+        uykuPanel.yenile();
+        buyumePanel.yenile();
+        hatirlaticiPanel.yenile();
         istatistiklerPanel.yenile();
         sonGuncellemeyiYaz();
     }
@@ -231,7 +317,7 @@ public class AnaPencere extends JFrame {
             return;
         }
         sonGuncellemeyiYaz();
-        dashboard.yenile();
+        ozetPanel.yenile();
         istatistiklerPanel.yenile();
     }
 
@@ -291,8 +377,10 @@ public class AnaPencere extends JFrame {
             return;
         }
         try {
-            DisaAktarim.jsonYaz(hedef.toPath(), depo.getKayitlar());
-            bilgiGoster(depo.sayi() + " kayıt yedeklendi:\n" + hedef.getAbsolutePath());
+            DisaAktarim.yedekYaz(hedef.toPath(), depo);
+            int toplam = depo.sayi() + depo.getUykular().size()
+                    + depo.getBuyumeler().size() + depo.getHatirlaticilar().size();
+            bilgiGoster(toplam + " kayıt yedeklendi:\n" + hedef.getAbsolutePath());
         } catch (IOException e) {
             hataGoster("Yedek yazılamadı: " + e.getMessage());
         }
@@ -306,33 +394,100 @@ public class AnaPencere extends JFrame {
         if (secici.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
             return;
         }
-        List<Kayit> gelen;
+        String metin;
         try {
-            gelen = DisaAktarim.jsonOku(secici.getSelectedFile().toPath());
-        } catch (IOException | RuntimeException e) {
+            metin = DisaAktarim.metinOku(secici.getSelectedFile().toPath());
+        } catch (IOException e) {
             hataGoster("Dosya okunamadı: " + e.getMessage());
             return;
         }
-        if (gelen.isEmpty()) {
-            bilgiGoster("Dosyada kayıt bulunamadı.");
+
+        // Her bölüm ayrı çözülür; eski yedeklerde yalnızca beslenme bulunur.
+        List<Kayit> gelenKayit = new ArrayList<>();
+        try {
+            gelenKayit = KayitDeposu.metniCoz(metin);
+        } catch (RuntimeException yoksay) {
+            // beslenme bölümü yoksa öbür bölümlere bakılır
+        }
+        List<UykuKayit> gelenUyku = new ArrayList<>();
+        List<BuyumeKayit> gelenBuyume = new ArrayList<>();
+        List<Hatirlatici> gelenHatirlatici = new ArrayList<>();
+        try {
+            gelenUyku = KayitDeposu.metniCozUyku(metin);
+            gelenBuyume = KayitDeposu.metniCozBuyume(metin);
+            gelenHatirlatici = KayitDeposu.metniCozHatirlatici(metin);
+        } catch (RuntimeException yoksay) {
+            // bozuk bölüm içe aktarımı durdurmaz
+        }
+
+        int toplam = gelenKayit.size() + gelenUyku.size()
+                + gelenBuyume.size() + gelenHatirlatici.size();
+        if (toplam == 0) {
+            try {
+                KayitDeposu.metniCoz(metin);
+                bilgiGoster("Dosyada kayıt bulunamadı.");
+            } catch (RuntimeException e) {
+                hataGoster("Dosya okunamadı: " + e.getMessage());
+            }
             return;
         }
+
+        StringBuilder ozet = new StringBuilder();
+        if (!gelenKayit.isEmpty()) {
+            ozet.append(gelenKayit.size()).append(" beslenme/bez\n");
+        }
+        if (!gelenUyku.isEmpty()) {
+            ozet.append(gelenUyku.size()).append(" uyku\n");
+        }
+        if (!gelenBuyume.isEmpty()) {
+            ozet.append(gelenBuyume.size()).append(" büyüme ölçümü\n");
+        }
+        if (!gelenHatirlatici.isEmpty()) {
+            ozet.append(gelenHatirlatici.size()).append(" hatırlatıcı\n");
+        }
+
         Object[] secenekler = {"Mevcuda ekle", "Hepsini değiştir", "İptal"};
         int secim = JOptionPane.showOptionDialog(this,
-                gelen.size() + " kayıt bulundu.\nNasıl içe aktarılsın?",
+                "Dosyada bulunanlar:\n\n" + ozet + "\nNasıl içe aktarılsın?",
                 "İçe aktar", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
                 null, secenekler, secenekler[0]);
         if (secim == 2 || secim == JOptionPane.CLOSED_OPTION) {
             return;
         }
-        if (secim == 1) {
-            depo.getKayitlar().clear();
+        boolean degistir = secim == 1;
+
+        if (!gelenKayit.isEmpty()) {
+            if (degistir) {
+                depo.getKayitlar().clear();
+            }
+            depo.getKayitlar().addAll(gelenKayit);
+            depo.kaydet();
         }
-        depo.getKayitlar().addAll(gelen);
+        if (!gelenUyku.isEmpty()) {
+            if (degistir) {
+                depo.getUykular().clear();
+            }
+            depo.getUykular().addAll(gelenUyku);
+            depo.kaydetUyku();
+        }
+        if (!gelenBuyume.isEmpty()) {
+            if (degistir) {
+                depo.getBuyumeler().clear();
+            }
+            depo.getBuyumeler().addAll(gelenBuyume);
+            depo.kaydetBuyume();
+        }
+        if (!gelenHatirlatici.isEmpty()) {
+            if (degistir) {
+                depo.getHatirlaticilar().clear();
+            }
+            depo.getHatirlaticilar().addAll(gelenHatirlatici);
+            depo.kaydetHatirlatici();
+        }
         depo.sirala();
-        depo.guncellendi();
+        depo.kaydet();
         tumunuYenile();
-        bilgiGoster(gelen.size() + " kayıt içe aktarıldı.");
+        bilgiGoster(toplam + " kayıt içe aktarıldı.");
     }
 
     private File dosyaSec(String baslik, String varsayilanAd, String aciklama, String uzanti) {
@@ -377,8 +532,11 @@ public class AnaPencere extends JFrame {
         JOptionPane.showMessageDialog(this,
                 "Bebek Beslenme Takibi " + SURUM + "\n"
                         + Tema.TELIF + "\n\n"
-                        + "Kayıt sayısı: " + depo.sayi() + "\n"
-                        + "Veri dosyası:\n" + depo.getDosya() + "\n\n"
+                        + "Beslenme/bez kaydı: " + depo.sayi() + "\n"
+                        + "Uyku kaydı: " + depo.getUykular().size() + "\n"
+                        + "Büyüme ölçümü: " + depo.getBuyumeler().size() + "\n"
+                        + "Hatırlatıcı: " + depo.getHatirlaticilar().size() + "\n\n"
+                        + "Veri klasörü:\n" + depo.getDosya().getParent() + "\n\n"
                         + "Java " + System.getProperty("java.version"),
                 "Hakkında", JOptionPane.INFORMATION_MESSAGE);
     }
@@ -403,7 +561,8 @@ public class AnaPencere extends JFrame {
         if (!simdi.equals(gosterilenGun)) {
             gosterilenGun = simdi;
             tarihiGuncelle();
-            dashboard.yenile();
+            ozetPanel.yenile();
+            uykuPanel.yenile();
             istatistiklerPanel.yenile();
         }
     }
@@ -421,10 +580,16 @@ public class AnaPencere extends JFrame {
             kayitlarPanel.aramayaOdaklan();
         });
         kisayol("gorunum1", KeyStroke.getKeyStroke(KeyEvent.VK_1, ctrl),
-                e -> gorunumeGec(YanMenu.GORUNUM_DASHBOARD));
+                e -> gorunumeGec(YanMenu.GORUNUM_OZET));
         kisayol("gorunum2", KeyStroke.getKeyStroke(KeyEvent.VK_2, ctrl),
                 e -> gorunumeGec(YanMenu.GORUNUM_KAYITLAR));
         kisayol("gorunum3", KeyStroke.getKeyStroke(KeyEvent.VK_3, ctrl),
+                e -> gorunumeGec(YanMenu.GORUNUM_UYKU));
+        kisayol("gorunum4", KeyStroke.getKeyStroke(KeyEvent.VK_4, ctrl),
+                e -> gorunumeGec(YanMenu.GORUNUM_BUYUME));
+        kisayol("gorunum5", KeyStroke.getKeyStroke(KeyEvent.VK_5, ctrl),
+                e -> gorunumeGec(YanMenu.GORUNUM_HATIRLATICI));
+        kisayol("gorunum6", KeyStroke.getKeyStroke(KeyEvent.VK_6, ctrl),
                 e -> gorunumeGec(YanMenu.GORUNUM_ISTATISTIK));
     }
 
@@ -450,8 +615,12 @@ public class AnaPencere extends JFrame {
                             + "\n\nYine de çıkılsın mı?",
                     "Kaydedilemedi", JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE);
             if (cevap != JOptionPane.YES_OPTION) {
+                saatZamanlayici.start();
                 return;
             }
+        }
+        if (tepsiSimgesi != null && SystemTray.isSupported()) {
+            SystemTray.getSystemTray().remove(tepsiSimgesi);
         }
         dispose();
         System.exit(0);

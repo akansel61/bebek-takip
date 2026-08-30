@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Arc2D;
+import java.awt.geom.Area;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.RoundRectangle2D;
@@ -74,7 +75,7 @@ public final class Ikonlar {
         });
     }
 
-    /** Dashboard: sütun grafik. */
+    /** Özet: sütun grafik. */
     public static void grafik(Graphics2D g0, double x, double y, double boyut, Color renk) {
         cerceve(g0, x, y, boyut, renk, (g, k) -> {
             g.fill(new RoundRectangle2D.Double(3.5, 13.0, 4.0, 8.0, 1.6, 1.6));
@@ -109,6 +110,40 @@ public final class Ikonlar {
             ok.lineTo(20.8, 6.5);
             ok.lineTo(20.8, 12.0);
             g.draw(ok);
+        });
+    }
+
+    /** Uyku: hilal. */
+    public static void ay(Graphics2D g0, double x, double y, double boyut, Color renk) {
+        cerceve(g0, x, y, boyut, renk, (g, k) -> {
+            Area hilal = new Area(new Ellipse2D.Double(4.0, 4.0, 16.0, 16.0));
+            hilal.subtract(new Area(new Ellipse2D.Double(9.5, 1.5, 16.0, 16.0)));
+            g.fill(hilal);
+        });
+    }
+
+    /** Büyüme: dikey cetvel. */
+    public static void cetvel(Graphics2D g0, double x, double y, double boyut, Color renk) {
+        cerceve(g0, x, y, boyut, renk, (g, k) -> {
+            g.setStroke(new BasicStroke(1.9f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.draw(new RoundRectangle2D.Double(8.5, 3.0, 7.0, 18.0, 2.4, 2.4));
+            g.drawLine(9, 7, 12, 7);
+            g.drawLine(9, 12, 13, 12);
+            g.drawLine(9, 17, 12, 17);
+        });
+    }
+
+    /** Hatırlatıcı: zil. */
+    public static void zil(Graphics2D g0, double x, double y, double boyut, Color renk) {
+        cerceve(g0, x, y, boyut, renk, (g, k) -> {
+            g.setStroke(new BasicStroke(1.9f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            Path2D govde = new Path2D.Double();
+            govde.moveTo(6.0, 15.5);
+            govde.curveTo(6.0, 8.0, 8.0, 4.5, 12.0, 4.5);
+            govde.curveTo(16.0, 4.5, 18.0, 8.0, 18.0, 15.5);
+            g.draw(govde);
+            g.drawLine(4, 16, 20, 16);
+            g.fill(new Ellipse2D.Double(10.6, 18.0, 2.8, 2.8));
         });
     }
 

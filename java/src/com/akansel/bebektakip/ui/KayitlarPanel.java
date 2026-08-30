@@ -1,7 +1,7 @@
 package com.akansel.bebektakip.ui;
 
+import com.akansel.bebektakip.depo.KayitDeposu;
 import com.akansel.bebektakip.model.Kayit;
-import com.akansel.bebektakip.store.KayitDeposu;
 import com.akansel.bebektakip.ui.bilesen.AramaAlani;
 import com.akansel.bebektakip.ui.bilesen.BosDurum;
 import com.akansel.bebektakip.ui.bilesen.Kart;
