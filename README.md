@@ -4,12 +4,12 @@
 
 # Bebek Takip
 
-Bebeğin beslenme, bez, uyku ve büyüme kayıtlarını tutan bir Windows masaüstü uygulaması.
+Bebeğin beslenme, bez, uyku, büyüme ve vitamin/ilaç kayıtlarını tutan bir Windows masaüstü uygulaması.
 
 ![Java](https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)
 ![Bağımlılık](https://img.shields.io/badge/Ba%C4%9F%C4%B1ml%C4%B1l%C4%B1k-Yok-2ea44f)
-![Sürüm](https://img.shields.io/badge/S%C3%BCr%C3%BCm-1.1-blue)
+![Sürüm](https://img.shields.io/badge/S%C3%BCr%C3%BCm-1.2-blue)
 
 <img src="https://github.com/akansel61/bebek-takip/releases/download/v1.0/dashboard.png" alt="Özet ekranı" width="880">
 
@@ -34,21 +34,24 @@ toplama katılmıyor. Böylece "yarısını içti" gibi bir not da yazabiliyorsu
 
 ## Ekranlar
 
-Altı ekran var:
+Yedi ekran var:
 
 - **Özet** — bugünün ölçümleri (kayıt, mama, çiş, kaka, emzirme, uyku, bekleyen
   hatırlatıcı, son kilo) ve son beş kayıt.
 - **Kayıtlar** — tüm geçmişin düzenlenebilir tablosu; not, mama notu, tarih ve
-  saat içinde arama yapılabiliyor.
+  saat içinde arama yapılabiliyor. Günler kolay ayırt edilsin diye çift günlerin
+  satırları (ayın 2, 4, 6…sı) bir ton koyu zeminle çiziliyor.
 - **Uyku Takibi** — bebek uyuyunca **Uyku Başlat**, uyanınca **Uykuyu Bitir**.
   Gece yarısını aşan uykular doğru hesaplanıyor; saatler sonradan elle
   düzeltilebiliyor.
 - **Büyüme** — kilo, boy ve baş çevresi ölçümleri. `4,2` ve `4.2` yazımlarının
   ikisi de kabul ediliyor.
+- **Vitamin & İlaç** — bebeğe verilen vitamin ve ilaçların günlüğü: ad, doz ve
+  not tabloda tutulur.
 - **Hatırlatıcılar** — aşı, ilaç, kontrol randevusu. En yakın tarihli iş üstte
   duruyor; yapılan iş tek tıkla işaretleniyor.
 - **İstatistikler** — son yedi günün kayıt, mama ve uyku dağılımı çubuk grafik
-  olarak, altında genel toplamlar.
+  olarak, gün gün toplam mama listesi ve genel toplamlar.
 
 <table>
 <tr>
@@ -73,9 +76,9 @@ Kod üç katmana ayrılmış ve bağımlılık tek yönlü akıyor:
 
 ```
 com.akansel.bebektakip
-├── model/       Kayit, UykuKayit, BuyumeKayit, Hatirlatici
+├── model/       Kayit, UykuKayit, BuyumeKayit, IlacKayit, Hatirlatici
 ├── depo/        Json, KayitDeposu, DisaAktarim — okuma, yazma, dışa aktarım
-├── ui/          Tema, Ikonlar, AnaPencere ve altı ekran
+├── ui/          Tema, Ikonlar, AnaPencere ve yedi ekran
 │   ├── bilesen/     kart, buton, arama kutusu, takvim, çubuk grafik
 │   └── tablo/       tablo modeli, hücre çizicileri, tablo davranışı
 └── arac/        IkonUret — derleme sırasında .ico üretir
@@ -128,7 +131,7 @@ test.bat         :: doğrulama testlerini çalıştır
 | Kısayol | İşlev | | Kısayol | İşlev |
 |---|---|---|---|---|
 | <kbd>Ctrl</kbd>+<kbd>N</kbd> | Yeni kayıt | | <kbd>Ctrl</kbd>+<kbd>E</kbd> | CSV dışa aktar |
-| <kbd>Ctrl</kbd>+<kbd>F</kbd> | Aramaya git | | <kbd>Ctrl</kbd>+<kbd>1..6</kbd> | Ekranlar arası geçiş |
+| <kbd>Ctrl</kbd>+<kbd>F</kbd> | Aramaya git | | <kbd>Ctrl</kbd>+<kbd>1..7</kbd> | Ekranlar arası geçiş |
 | <kbd>Ctrl</kbd>+<kbd>S</kbd> | Hemen kaydet | | <kbd>Space</kbd> / <kbd>Del</kbd> | İşaretle / satır sil |
 
 ## Veri
@@ -139,6 +142,7 @@ Kayıtlar kullanıcı klasöründe, her veri türü kendi dosyasında düz JSON 
 %USERPROFILE%\.bebek-takip\kayitlar.json          beslenme ve bez
 %USERPROFILE%\.bebek-takip\uykular.json           uyku
 %USERPROFILE%\.bebek-takip\buyumeler.json         büyüme ölçümleri
+%USERPROFILE%\.bebek-takip\ilaclar.json           vitamin ve ilaçlar
 %USERPROFILE%\.bebek-takip\hatirlaticilar.json    hatırlatıcılar
 ```
 

@@ -29,6 +29,7 @@ public class YanMenu extends JPanel {
     public static final String GORUNUM_KAYITLAR = "kayitlar";
     public static final String GORUNUM_UYKU = "uyku";
     public static final String GORUNUM_BUYUME = "buyume";
+    public static final String GORUNUM_ILAC = "ilac";
     public static final String GORUNUM_HATIRLATICI = "hatirlatici";
     public static final String GORUNUM_ISTATISTIK = "istatistik";
 
@@ -59,6 +60,8 @@ public class YanMenu extends JPanel {
         gezinme.add(oge(GORUNUM_UYKU, "Uyku Takibi", Ikonlar::ay, secim));
         gezinme.add(Box.createVerticalStrut(4));
         gezinme.add(oge(GORUNUM_BUYUME, "Büyüme", Ikonlar::cetvel, secim));
+        gezinme.add(Box.createVerticalStrut(4));
+        gezinme.add(oge(GORUNUM_ILAC, "Vitamin & İlaç", Ikonlar::hap, secim));
         gezinme.add(Box.createVerticalStrut(4));
         gezinme.add(oge(GORUNUM_HATIRLATICI, "Hatırlatıcılar", Ikonlar::zil, secim));
         gezinme.add(Box.createVerticalStrut(4));

@@ -3,6 +3,7 @@ import com.akansel.bebektakip.depo.Json;
 import com.akansel.bebektakip.depo.KayitDeposu;
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Hatirlatici;
+import com.akansel.bebektakip.model.IlacKayit;
 import com.akansel.bebektakip.model.Kayit;
 import com.akansel.bebektakip.model.UykuKayit;
 
@@ -40,6 +41,7 @@ public class Deneme {
         uykuTesti();
         buyumeTesti();
         hatirlaticiTesti();
+        ilacTesti();
         depoCokluTesti();
 
         System.out.println();
@@ -301,6 +303,23 @@ public class Deneme {
         kontrol("varsayılan tamamlanmadı", false, new Hatirlatici().isTamamlandi());
     }
 
+    static void ilacTesti() {
+        System.out.println("[Vitamin ve ilaç]");
+        IlacKayit i = new IlacKayit();
+        i.setTarih(LocalDate.of(2026, 8, 28));
+        i.setSaat(LocalTime.of(8, 15));
+        i.setAd("D vitamini");
+        i.setDoz("3 damla");
+        i.setNot("Kahvaltıdan önce");
+        IlacKayit geri = IlacKayit.jsondan(
+                (java.util.Map<?, ?>) Json.oku(Json.yaz(i.jsonaCevir())));
+        kontrol("ilaç adı korundu", "D vitamini", geri.getAd());
+        kontrol("doz korundu", "3 damla", geri.getDoz());
+        kontrol("ilaç saati korundu", LocalTime.of(8, 15), geri.getSaat());
+        kontrol("ilaç notu korundu", "Kahvaltıdan önce", geri.getNot());
+        kontrol("ilaç tarihi korundu", LocalDate.of(2026, 8, 28), geri.getTarih());
+    }
+
     static void depoCokluTesti() throws Exception {
         System.out.println("[Depo - uyku/büyüme/hatırlatıcı]");
         Path gecici = Files.createTempDirectory("bebek-coklu");
@@ -331,18 +350,26 @@ public class Deneme {
         h2.setTamamlandi(true);
         depo.ekleHatirlatici(h2);
 
+        IlacKayit ilac = new IlacKayit();
+        ilac.setAd("D vitamini");
+        ilac.setDoz("3 damla");
+        depo.ekleIlac(ilac);
+
         kontrol("uyku dosyası oluştu", true,
                 Files.exists(gecici.resolve("uykular.json")));
         kontrol("büyüme dosyası oluştu", true,
                 Files.exists(gecici.resolve("buyumeler.json")));
         kontrol("hatırlatıcı dosyası oluştu", true,
                 Files.exists(gecici.resolve("hatirlaticilar.json")));
+        kontrol("ilaç dosyası oluştu", true,
+                Files.exists(gecici.resolve("ilaclar.json")));
 
         KayitDeposu tekrar = new KayitDeposu(gecici);
         tekrar.yukle();
         kontrol("uyku geri okundu", 1, tekrar.getUykular().size());
         kontrol("ölçüm geri okundu", 1, tekrar.getBuyumeler().size());
         kontrol("hatırlatıcı geri okundu", 2, tekrar.getHatirlaticilar().size());
+        kontrol("ilaç geri okundu", "D vitamini", tekrar.getIlaclar().get(0).getAd());
         kontrol("bekleyen hatırlatıcı", 1, tekrar.bekleyenHatirlatici());
         kontrol("günün uyku süresi", 90L,
                 tekrar.gununUykuSuresi(LocalDate.of(2026, 8, 29)));

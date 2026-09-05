@@ -2,7 +2,7 @@
 
 © 2026 by AKANSEL
 
-Bebeğin beslenme, bez, uyku, büyüme ve hatırlatıcı kayıtlarını tutan
+Bebeğin beslenme, bez, uyku, büyüme, vitamin/ilaç ve hatırlatıcı kayıtlarını tutan
 **saf Java (Swing)** masaüstü uygulaması. HTML, WebView veya tarayıcı motoru
 kullanılmaz; tüm arayüz native Swing bileşenleriyle çizilir.
 
@@ -60,14 +60,19 @@ Verdiğiniz yolda da bu karakterler bulunmamalıdır.
 - **Özet** — bugünün ölçümleri (kayıt, mama, çiş, kaka, emzirme, uyku, bekleyen
   hatırlatıcı, son kilo) ve son 5 kayıt.
 - **Kayıtlar** — tüm beslenme/bez kayıtlarının düzenlenebilir tablosu ve arama.
+  Çift günlerin satırları (ayın 2, 4, 6…sı) bir ton koyu zeminle çizilir; böylece
+  günler kaydırırken birbirinden ayrılır.
 - **Uyku Takibi** — "Uyku Başlat" o anın saatiyle açık bir kayıt açar, "Uykuyu
   Bitir" kapatır. Saatler tabloda elle düzeltilebilir; bitişi başlangıçtan küçük
   girilen uyku (23:30 → 06:15) ertesi güne sayılır.
 - **Büyüme** — kilo, boy ve baş çevresi. "Yeni Ölçüm" günün tarihiyle boş satır
   açar, değerler hücreye yazılır.
+- **Vitamin & İlaç** — bebeğe verilenlerin günlüğü. "Vitamin / İlaç Ekle" o anın
+  tarih ve saatiyle satır açar; ad, doz ve not hücreye yazılır.
 - **Hatırlatıcılar** — aşı, ilaç, kontrol. En yakın tarihli üstte durur; soldaki
   kutu işaretlenince tamamlanmış sayılır.
-- **İstatistikler** — son 7 günün kayıt, mama ve uyku grafikleri, genel toplamlar.
+- **İstatistikler** — son 7 günün kayıt, mama ve uyku grafikleri, gün gün toplam
+  mama listesi (son 30 gün) ve genel toplamlar.
 
 ### Tabloda düzenleme
 
@@ -79,7 +84,7 @@ Verdiğiniz yolda da bu karakterler bulunmamalıdır.
 | Metin ve sayı alanları | Hücreye çift tıklayıp yazın |
 | Satır silme | Satırın üstüne gelin, sağdaki çöp kutusuna tıklayın (veya **Delete**) |
 
-Aynı düzen uyku, büyüme ve hatırlatıcı tablolarında da geçerlidir.
+Aynı düzen uyku, büyüme, vitamin/ilaç ve hatırlatıcı tablolarında da geçerlidir.
 
 Mama miktarı, mama notundaki ilk sayıdan okunur: `120`, `120 ml`, `90ml`, `7,5`
 yazımlarının hepsi tanınır. Mama kutusu işaretli değilse miktar toplama katılmaz.
@@ -102,7 +107,7 @@ geçilebilir veya uygulamadan çıkılabilir.
 | `Ctrl+F` | Kayıtlar ekranında aramaya git |
 | `Ctrl+S` | Hemen kaydet |
 | `Ctrl+E` | CSV olarak dışa aktar |
-| `Ctrl+1 … 6` | Özet / Kayıtlar / Uyku / Büyüme / Hatırlatıcılar / İstatistikler |
+| `Ctrl+1 … 7` | Özet / Kayıtlar / Uyku / Büyüme / Vitamin & İlaç / Hatırlatıcılar / İstatistikler |
 | `Boşluk` | Seçili işaret kutusunu değiştir |
 | `Delete` | Seçili satırı sil |
 
@@ -116,6 +121,7 @@ Her veri türü kendi dosyasında tutulur:
 %USERPROFILE%\.bebek-takip\kayitlar.json          beslenme ve bez
 %USERPROFILE%\.bebek-takip\uykular.json           uyku
 %USERPROFILE%\.bebek-takip\buyumeler.json         büyüme ölçümleri
+%USERPROFILE%\.bebek-takip\ilaclar.json           vitamin ve ilaçlar
 %USERPROFILE%\.bebek-takip\hatirlaticilar.json    hatırlatıcılar
 ```
 
@@ -145,6 +151,7 @@ java/
       Kayit.java                beslenme kaydı + tarih/saat/sayı çözümleme
       UykuKayit.java            uyku kaydı, gece aşan süre hesabı
       BuyumeKayit.java          kilo / boy / baş çevresi ölçümü
+      IlacKayit.java            verilen vitamin / ilaç kaydı
       Hatirlatici.java          aşı, ilaç, randevu hatırlatması
     depo/
       Json.java                 bağımlılıksız JSON okuyucu/yazıcı
@@ -160,6 +167,7 @@ java/
       KayitlarPanel.java        kayıt tablosu ekranı
       UykuPanel.java            uyku ekranı
       BuyumePanel.java          büyüme ekranı
+      IlacPanel.java            vitamin ve ilaç ekranı
       HatirlaticiPanel.java     hatırlatıcı ekranı
       IstatistiklerPanel.java   grafikler ve toplamlar
       bilesen/                  kart, buton, arama, takvim, grafik, boş durum
@@ -187,8 +195,11 @@ Arayüzde emoji veya resim dosyası kullanılmaz; bütün ikonlar `Graphics2D` i
 - Gece yarısı geçildiğinde "bugün" ölçümleri kendiliğinden tazelenir.
 - Uykuda bitiş saati başlangıçtan küçükse süre ertesi güne taşarak hesaplanır;
   "Uyku Başlat" açıkken ikinci bir kayıt açılmasına izin verilmez.
-- İstatistikler haftalık mama ve uyku grafikleri, toplam mama miktarı, toplam uyku,
-  kayıtlı gün sayısı ve günlük ortalama içerir.
+- Beslenme tablolarında çift günlerin satır zemini bir ton koyudur
+  (`Tema.SATIR_KOYU`); renk satıra değil kaydın tarihine bağlıdır, arama
+  açıkken de şaşmaz.
+- İstatistikler haftalık mama ve uyku grafikleri, gün gün toplam mama listesi,
+  toplam mama miktarı, toplam uyku, kayıtlı gün sayısı ve günlük ortalama içerir.
 
 ---
 
@@ -196,17 +207,17 @@ Arayüzde emoji veya resim dosyası kullanılmaz; bütün ikonlar `Graphics2D` i
 
 `test.bat` iki takım çalıştırır:
 
-- **Veri katmanı (94 kontrol)** — JSON gidiş-dönüşü ve kaçış dizileri, mama miktarı
+- **Veri katmanı (101 kontrol)** — JSON gidiş-dönüşü ve kaçış dizileri, mama miktarı
   çözümleme, eski alan adlarıyla (`date`/`time`) yazılmış dosyaların okunması, atomik
   kaydetme ve yedek, bozuk dosyaya dayanıklılık, gece yarısını aşan uyku süresi,
-  virgüllü ölçü değerleri, dört dosyanın birlikte kaydedilip yüklenmesi, CSV
-  kaçışları ve `.ico` yapısı.
-- **İşlevsel (40 kontrol)** — gerçek pencere ekran dışında açılır; kayıt ekleme,
+  virgüllü ölçü değerleri, vitamin/ilaç kayıtları, beş dosyanın birlikte kaydedilip
+  yüklenmesi, CSV kaçışları ve `.ico` yapısı.
+- **İşlevsel (41 kontrol)** — gerçek pencere ekran dışında açılır; kayıt ekleme,
   işaretleme, hücre düzenleme, gecikmeli kaydetmenin diske yansıması, arama, silme,
-  uyku/büyüme/hatırlatıcı akışları, ekran geçişleri ve özet tablosunun 5 satır
+  uyku/büyüme/ilaç/hatırlatıcı akışları, ekran geçişleri ve özet tablosunun 5 satır
   sınırı sınanır.
 
-`test.bat onizleme` sekiz ekran görüntüsünü PNG olarak üretir (ekranın DPI ölçeği
+`test.bat onizleme` dokuz ekran görüntüsünü PNG olarak üretir (ekranın DPI ölçeği
 dikkate alınarak), böylece arayüz değişiklikleri gözle karşılaştırılabilir.
 
 ---

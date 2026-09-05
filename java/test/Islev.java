@@ -1,6 +1,7 @@
 import com.akansel.bebektakip.depo.KayitDeposu;
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Hatirlatici;
+import com.akansel.bebektakip.model.IlacKayit;
 import com.akansel.bebektakip.model.Kayit;
 import com.akansel.bebektakip.model.UykuKayit;
 import com.akansel.bebektakip.ui.AnaPencere;
@@ -200,15 +201,21 @@ public class Islev {
             Hatirlatici h = new Hatirlatici();
             h.setBaslik("Aşı randevusu");
             depo.ekleHatirlatici(h);
+            IlacKayit i = new IlacKayit();
+            i.setAd("D vitamini");
+            i.setDoz("3 damla");
+            depo.ekleIlac(i);
         });
         kontrol("uyku kaydı eklendi", 1, depo.getUykular().size());
         kontrol("uyku süresi doğru", 90L, depo.getUykular().get(0).sureDakika());
         kontrol("ölçüm eklendi", 1, depo.getBuyumeler().size());
         kontrol("bekleyen hatırlatıcı", 1, depo.bekleyenHatirlatici());
+        kontrol("ilaç kaydı eklendi", 1, depo.getIlaclar().size());
         kontrol("uyku dosyası yazıldı", true,
                 Files.exists(dizin.resolve("uykular.json")));
         SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_UYKU));
         SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_BUYUME));
+        SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_ILAC));
         SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_HATIRLATICI));
         SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_KAYITLAR));
         kontrol("yeni ekran geçişleri sorunsuz", 2, model.getRowCount());

@@ -2,6 +2,7 @@ package com.akansel.bebektakip.depo;
 
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Hatirlatici;
+import com.akansel.bebektakip.model.IlacKayit;
 import com.akansel.bebektakip.model.Kayit;
 import com.akansel.bebektakip.model.UykuKayit;
 
@@ -154,6 +155,12 @@ public final class DisaAktarim {
             hatirlaticilar.add(h.jsonaCevir());
         }
         kok.put("hatirlaticilar", hatirlaticilar);
+
+        List<Object> ilaclar = new ArrayList<>(depo.getIlaclar().size());
+        for (IlacKayit i : depo.getIlaclar()) {
+            ilaclar.add(i.jsonaCevir());
+        }
+        kok.put("ilaclar", ilaclar);
 
         Files.write(hedef, Json.yaz(kok).getBytes(StandardCharsets.UTF_8));
     }
