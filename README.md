@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/akansel61/bebek-takip/releases/download/v1.0/logo.png" alt="Bebek Takip" width="88">
+<img src="https://github.com/akansel61/bebek-takip/releases/download/v1.2/logo.png" alt="Bebek Takip" width="88">
 
 # Bebek Takip
 
@@ -11,7 +11,7 @@ Bebeğin beslenme, bez, uyku, büyüme ve vitamin/ilaç kayıtlarını tutan bir
 ![Bağımlılık](https://img.shields.io/badge/Ba%C4%9F%C4%B1ml%C4%B1l%C4%B1k-Yok-2ea44f)
 ![Sürüm](https://img.shields.io/badge/S%C3%BCr%C3%BCm-1.2-blue)
 
-<img src="https://github.com/akansel61/bebek-takip/releases/download/v1.0/dashboard.png" alt="Özet ekranı" width="880">
+<img src="https://github.com/akansel61/bebek-takip/releases/download/v1.2/ozet.png" alt="Özet ekranı" width="880">
 
 </div>
 
@@ -55,8 +55,8 @@ Yedi ekran var:
 
 <table>
 <tr>
-<td width="50%"><img src="https://github.com/akansel61/bebek-takip/releases/download/v1.0/kayitlar.png" alt="Kayıtlar ekranı"></td>
-<td width="50%"><img src="https://github.com/akansel61/bebek-takip/releases/download/v1.0/istatistikler.png" alt="İstatistikler ekranı"></td>
+<td width="50%"><img src="https://github.com/akansel61/bebek-takip/releases/download/v1.2/kayitlar.png" alt="Kayıtlar ekranı"></td>
+<td width="50%"><img src="https://github.com/akansel61/bebek-takip/releases/download/v1.2/istatistikler.png" alt="İstatistikler ekranı"></td>
 </tr>
 </table>
 
@@ -104,8 +104,10 @@ WiX Toolset isterken app-image hiçbir ek araç gerektirmiyor; çalışma zaman�
 
 ## Kurulum
 
-Paketlenmiş `.exe` kendi Java çalışma zamanını taşır, hedef bilgisayarda Java kurulu
-olmasına gerek yoktur. Klasörü olduğu gibi kopyalayabilirsiniz.
+Hazır paketi [Releases sayfasından](https://github.com/akansel61/bebek-takip/releases/latest)
+indirin: `BebekTakip-1.2-windows.zip` dosyasını açıp `Bebek Takip.exe`'yi çalıştırmak
+yeterli. Paket kendi Java çalışma zamanını taşır, hedef bilgisayarda Java kurulu
+olmasına gerek yoktur; klasörü olduğu gibi kopyalayabilirsiniz.
 
 Kaynaktan derlemek için JDK 17 veya üstü yeterli:
 
