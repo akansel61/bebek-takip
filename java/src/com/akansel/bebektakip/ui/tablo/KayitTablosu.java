@@ -20,7 +20,8 @@ import java.awt.event.MouseEvent;
 import java.util.function.Consumer;
 
 /** Satır vurgusu, tıklamayla işaretleme ve satır silme davranışını taşıyan tablo. */
-public class KayitTablosu extends JTable implements Hucreler.UzerindeBilgisi {
+public class KayitTablosu extends JTable
+        implements Hucreler.UzerindeBilgisi, Hucreler.GunTonu {
 
     private static final long serialVersionUID = 1L;
 
@@ -248,5 +249,12 @@ public class KayitTablosu extends JTable implements Hucreler.UzerindeBilgisi {
     @Override
     public int uzerindekiSutun() {
         return uzerindekiSutun;
+    }
+
+    /** Günler ayırt edilsin diye çift günlerin satırları bir ton koyu çizilir. */
+    @Override
+    public boolean gunKoyu(int satir) {
+        Kayit k = modeli.satirdaki(satir);
+        return k != null && k.getTarih().getDayOfMonth() % 2 == 0;
     }
 }

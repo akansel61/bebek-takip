@@ -2,6 +2,7 @@ package com.akansel.bebektakip.depo;
 
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Hatirlatici;
+import com.akansel.bebektakip.model.IlacKayit;
 import com.akansel.bebektakip.model.Kayit;
 import com.akansel.bebektakip.model.UykuKayit;
 
@@ -25,8 +26,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Bütün kayıt türlerinin bellekteki listeleri ve disk üzerindeki JSON dosyaları.
  *
  * Her tür kendi dosyasında durur, %USERPROFILE%\.bebek-takip altında:
- *   beslenme/bez -> kayitlar.json      uyku        -> uykular.json
- *   büyüme       -> buyumeler.json     hatırlatıcı -> hatirlaticilar.json
+ *   beslenme/bez -> kayitlar.json      uyku          -> uykular.json
+ *   büyüme       -> buyumeler.json     hatırlatıcı   -> hatirlaticilar.json
+ *   vitamin/ilaç -> ilaclar.json
  *
  * Yazma atomik: önce .tmp dosyasına yazılır, sonra yerine taşınır. Her
  * başarılı yazmadan önce bir önceki sürüm .bak olarak saklanır.
@@ -45,11 +47,14 @@ public class KayitDeposu {
     private final Path buyumeYedek;
     private final Path hatirlaticiDosya;
     private final Path hatirlaticiYedek;
+    private final Path ilacDosya;
+    private final Path ilacYedek;
 
     private final List<Kayit> kayitlar = new ArrayList<>();
     private final List<UykuKayit> uykular = new ArrayList<>();
     private final List<BuyumeKayit> buyumeler = new ArrayList<>();
     private final List<Hatirlatici> hatirlaticilar = new ArrayList<>();
+    private final List<IlacKayit> ilaclar = new ArrayList<>();
     private final List<Runnable> dinleyiciler = new CopyOnWriteArrayList<>();
 
     private LocalDateTime sonKayitZamani;
@@ -69,6 +74,8 @@ public class KayitDeposu {
         this.buyumeYedek = dizin.resolve("buyumeler.json.bak");
         this.hatirlaticiDosya = dizin.resolve("hatirlaticilar.json");
         this.hatirlaticiYedek = dizin.resolve("hatirlaticilar.json.bak");
+        this.ilacDosya = dizin.resolve("ilaclar.json");
+        this.ilacYedek = dizin.resolve("ilaclar.json.bak");
     }
 
     public static Path varsayilanDizin() {
@@ -113,6 +120,10 @@ public class KayitDeposu {
 
     public List<Hatirlatici> getHatirlaticilar() {
         return hatirlaticilar;
+    }
+
+    public List<IlacKayit> getIlaclar() {
+        return ilaclar;
     }
 
     public int sayi() {
@@ -172,6 +183,19 @@ public class KayitDeposu {
         }
     }
 
+    public void ekleIlac(IlacKayit i) {
+        ilaclar.add(0, i);
+        kaydetIlac();
+        degistiBildir();
+    }
+
+    public void silIlac(IlacKayit i) {
+        if (ilaclar.remove(i)) {
+            kaydetIlac();
+            degistiBildir();
+        }
+    }
+
     public void hepsiniSil() {
         kayitlar.clear();
         kaydet();
@@ -190,17 +214,19 @@ public class KayitDeposu {
         uykular.sort(Comparator.comparing(
                 (UykuKayit u) -> u.getTarih().atTime(u.getBaslangic())).reversed());
         buyumeler.sort(Comparator.comparing(BuyumeKayit::getTarih).reversed());
+        ilaclar.sort(Comparator.comparing(IlacKayit::zaman).reversed());
         // hatırlatıcılar ters değil: en yakın tarih en üstte dursun
         hatirlaticilar.sort(Comparator.comparing(Hatirlatici::zaman));
     }
 
-    /** Dört dosyayı da okur; olmayan dosya boş liste sayılır. */
+    /** Bütün veri dosyalarını okur; olmayan dosya boş liste sayılır. */
     public void yukle() {
         sonHata = null;
         kayitlar.clear();
         uykular.clear();
         buyumeler.clear();
         hatirlaticilar.clear();
+        ilaclar.clear();
 
         String beslenme = dosyaOku(dosya, "Kayıt dosyası okunamadı");
         if (beslenme != null) {
@@ -232,6 +258,14 @@ public class KayitDeposu {
                 hatirlaticilar.addAll(metniCozHatirlatici(hatirlatma));
             } catch (RuntimeException e) {
                 hataEkle("Hatırlatıcı dosyası okunamadı: " + e.getMessage());
+            }
+        }
+        String ilac = dosyaOku(ilacDosya, "İlaç dosyası okunamadı");
+        if (ilac != null) {
+            try {
+                ilaclar.addAll(metniCozIlac(ilac));
+            } catch (RuntimeException e) {
+                hataEkle("İlaç dosyası okunamadı: " + e.getMessage());
             }
         }
         sirala();
@@ -319,6 +353,16 @@ public class KayitDeposu {
         return sonuc;
     }
 
+    public static List<IlacKayit> metniCozIlac(String metin) {
+        List<IlacKayit> sonuc = new ArrayList<>();
+        for (Object o : adliListe(metin, "ilaclar")) {
+            if (o instanceof Map) {
+                sonuc.add(IlacKayit.jsondan((Map<?, ?>) o));
+            }
+        }
+        return sonuc;
+    }
+
     private static List<?> adliListe(String metin, String anahtar) {
         String temiz = temizle(metin);
         if (temiz.isEmpty()) {
@@ -374,6 +418,14 @@ public class KayitDeposu {
             veriler.add(h.jsonaCevir());
         }
         return yaz(hatirlaticiDosya, hatirlaticiYedek, "hatirlaticilar", veriler);
+    }
+
+    public boolean kaydetIlac() {
+        List<Map<String, Object>> veriler = new ArrayList<>(ilaclar.size());
+        for (IlacKayit i : ilaclar) {
+            veriler.add(i.jsonaCevir());
+        }
+        return yaz(ilacDosya, ilacYedek, "ilaclar", veriler);
     }
 
     private boolean yaz(Path hedef, Path yedegi, String anahtar,

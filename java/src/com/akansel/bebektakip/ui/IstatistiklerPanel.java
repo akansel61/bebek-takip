@@ -16,9 +16,12 @@ import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 /** Haftalık özet ve genel toplamlar. */
 public class IstatistiklerPanel extends KaydirilabilirPanel {
@@ -27,11 +30,15 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
 
     private static final int HAFTA_GUNU = 7;
 
+    /** Günlük mama listesinde gösterilecek en fazla gün sayısı. */
+    private static final int GUNLUK_MAMA_SINIRI = 30;
+
     private final KayitDeposu depo;
     private final CubukGrafik haftalik = new CubukGrafik();
     private final CubukGrafik haftalikMama = new CubukGrafik().cubukRengi(Tema.TURUNCU);
     private final CubukGrafik haftalikUyku = new CubukGrafik().cubukRengi(Tema.MOR);
     private final OlcumListesi genel = new OlcumListesi();
+    private final OlcumListesi gunlukMama = new OlcumListesi();
 
     public IstatistiklerPanel(KayitDeposu depo) {
         super(new BorderLayout());
@@ -60,6 +67,9 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
         KartIzgara izgara = new KartIzgara(320, 16);
         izgara.add(sol);
         izgara.add(usteYasla(kartYap("Genel İstatistikler", null, genel)));
+        izgara.add(usteYasla(kartYap("Günlük Mama",
+                "Gün gün toplam mama (ml/gr, son " + GUNLUK_MAMA_SINIRI + " gün)",
+                gunlukMama)));
         add(izgara, BorderLayout.NORTH);
     }
 
@@ -153,6 +163,8 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
                 toplamUyku > 0 ? Tema.sure(toplamUyku) : "0"));
         olcumler.add(new OlcumListesi.Olcum("Büyüme ölçümü",
                 String.valueOf(depo.getBuyumeler().size())));
+        olcumler.add(new OlcumListesi.Olcum("Vitamin / ilaç kaydı",
+                String.valueOf(depo.getIlaclar().size())));
         olcumler.add(new OlcumListesi.Olcum("Bekleyen hatırlatıcı",
                 String.valueOf(depo.bekleyenHatirlatici())));
         olcumler.add(new OlcumListesi.Olcum("Kayıtlı gün sayısı",
@@ -160,6 +172,31 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
         olcumler.add(new OlcumListesi.Olcum("Günlük ortalama kayıt",
                 gunSayisi == 0 ? "0" : Tema.sayi(Math.round(tumu.size() * 10.0 / gunSayisi) / 10.0)));
         genel.setOlcumler(olcumler);
+
+        // gün gün toplam mama; en yeni gün en üstte
+        Map<LocalDate, Double> gunlukToplam = new TreeMap<>(Comparator.reverseOrder());
+        for (Kayit k : tumu) {
+            double miktar = k.mamaMiktari();
+            if (miktar > 0) {
+                gunlukToplam.merge(k.getTarih(), miktar, Double::sum);
+            }
+        }
+        List<OlcumListesi.Olcum> mamaGunleri = new ArrayList<>();
+        for (Map.Entry<LocalDate, Double> e : gunlukToplam.entrySet()) {
+            if (mamaGunleri.size() >= GUNLUK_MAMA_SINIRI) {
+                break;
+            }
+            boolean bugunMu = e.getKey().equals(bugun);
+            String etiket = bugunMu
+                    ? "Bugün · " + Tema.tamTarih(e.getKey())
+                    : Tema.gunAdi(e.getKey()) + " · " + Tema.tamTarih(e.getKey());
+            mamaGunleri.add(new OlcumListesi.Olcum(etiket,
+                    Tema.sayi(e.getValue()), bugunMu));
+        }
+        if (mamaGunleri.isEmpty()) {
+            mamaGunleri.add(new OlcumListesi.Olcum("Henüz mama kaydı yok", "—"));
+        }
+        gunlukMama.setOlcumler(mamaGunleri);
 
         revalidate();
         repaint();

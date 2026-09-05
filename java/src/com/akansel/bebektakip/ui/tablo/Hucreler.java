@@ -35,6 +35,11 @@ public final class Hucreler {
         int uzerindekiSutun();
     }
 
+    /** Satırın ait olduğu günün bir ton koyu çizilip çizilmeyeceğini bildirir. */
+    public interface GunTonu {
+        boolean gunKoyu(int satir);
+    }
+
     /** Ortak zemin ve alt çizgi çizimini yapan taban sınıf. */
     abstract static class Temel extends JComponent implements TableCellRenderer {
 
@@ -45,6 +50,7 @@ public final class Hucreler {
         protected boolean hucreUzerinde;
         protected boolean secili;
         protected boolean sonSatir;
+        protected boolean koyuGun;
 
         @Override
         public Component getTableCellRendererComponent(JTable tablo, Object deger,
@@ -61,6 +67,7 @@ public final class Hucreler {
                 this.uzerinde = false;
                 this.hucreUzerinde = false;
             }
+            this.koyuGun = tablo instanceof GunTonu && ((GunTonu) tablo).gunKoyu(satir);
             return this;
         }
 
@@ -69,7 +76,9 @@ public final class Hucreler {
             Graphics2D g2 = (Graphics2D) g.create();
             try {
                 Tema.kaliteAyarla(g2);
-                Color zemin = secili ? Tema.SECILI : (uzerinde ? Tema.SATIR_USTU : Tema.YUZEY);
+                Color taban = koyuGun ? Tema.SATIR_KOYU : Tema.YUZEY;
+                Color zemin = secili ? Tema.SECILI
+                        : (uzerinde ? Tema.karistir(taban, Tema.SECILI, 0.5) : taban);
                 g2.setColor(zemin);
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 if (!sonSatir) {

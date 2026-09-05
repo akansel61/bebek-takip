@@ -133,6 +133,16 @@ public final class Ikonlar {
         });
     }
 
+    /** Vitamin ve ilaç: kapsül. */
+    public static void hap(Graphics2D g0, double x, double y, double boyut, Color renk) {
+        cerceve(g0, x, y, boyut, renk, (g, k) -> {
+            g.setStroke(new BasicStroke(1.9f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.rotate(Math.toRadians(-45), 12, 12);
+            g.draw(new RoundRectangle2D.Double(5.2, 8.6, 13.6, 6.8, 6.8, 6.8));
+            g.drawLine(12, 9, 12, 15);
+        });
+    }
+
     /** Hatırlatıcı: zil. */
     public static void zil(Graphics2D g0, double x, double y, double boyut, Color renk) {
         cerceve(g0, x, y, boyut, renk, (g, k) -> {

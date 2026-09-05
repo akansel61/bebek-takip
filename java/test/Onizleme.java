@@ -1,6 +1,7 @@
 import com.akansel.bebektakip.depo.KayitDeposu;
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Hatirlatici;
+import com.akansel.bebektakip.model.IlacKayit;
 import com.akansel.bebektakip.model.Kayit;
 import com.akansel.bebektakip.model.UykuKayit;
 import com.akansel.bebektakip.ui.AnaPencere;
@@ -55,13 +56,15 @@ public class Onizleme {
         ornekDigerVeri(depo);
         cek(depo, new String[]{YanMenu.GORUNUM_OZET, YanMenu.GORUNUM_KAYITLAR,
                         YanMenu.GORUNUM_UYKU, YanMenu.GORUNUM_BUYUME,
-                        YanMenu.GORUNUM_HATIRLATICI, YanMenu.GORUNUM_ISTATISTIK},
+                        YanMenu.GORUNUM_ILAC, YanMenu.GORUNUM_HATIRLATICI,
+                        YanMenu.GORUNUM_ISTATISTIK},
                 new Path[]{cikti.resolve("3-ozet.png"),
                         cikti.resolve("4-kayitlar.png"),
                         cikti.resolve("5-uyku.png"),
                         cikti.resolve("6-buyume.png"),
-                        cikti.resolve("7-hatirlatici.png"),
-                        cikti.resolve("8-istatistikler.png")});
+                        cikti.resolve("7-vitamin-ilac.png"),
+                        cikti.resolve("8-hatirlatici.png"),
+                        cikti.resolve("9-istatistikler.png")});
 
         System.exit(0);
     }
@@ -189,9 +192,26 @@ public class Onizleme {
             depo.getHatirlaticilar().add(h);
         }
 
+        String[][] ilaclar = {
+                {"0", "8", "30", "D vitamini", "3 damla", ""},
+                {"0", "20", "0", "Demir şurubu", "1 ml", "Akşam beslenmesinden sonra"},
+                {"1", "8", "15", "D vitamini", "3 damla", ""},
+                {"2", "8", "45", "D vitamini", "3 damla", "Kahvaltıdan önce"},
+        };
+        for (String[] p : ilaclar) {
+            IlacKayit ilac = new IlacKayit();
+            ilac.setTarih(bugun.minusDays(Integer.parseInt(p[0])));
+            ilac.setSaat(LocalTime.of(Integer.parseInt(p[1]), Integer.parseInt(p[2])));
+            ilac.setAd(p[3]);
+            ilac.setDoz(p[4]);
+            ilac.setNot(p[5]);
+            depo.getIlaclar().add(ilac);
+        }
+
         depo.sirala();
         depo.kaydetUyku();
         depo.kaydetBuyume();
         depo.kaydetHatirlatici();
+        depo.kaydetIlac();
     }
 }
