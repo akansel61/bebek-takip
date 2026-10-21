@@ -1,6 +1,8 @@
 package com.akansel.bebektakip.ui;
 
 import com.akansel.bebektakip.depo.KayitDeposu;
+import com.akansel.bebektakip.model.AtesKayit;
+import com.akansel.bebektakip.model.IlacKayit;
 import com.akansel.bebektakip.model.Kayit;
 import com.akansel.bebektakip.model.UykuKayit;
 import com.akansel.bebektakip.ui.bilesen.CubukGrafik;
@@ -163,8 +165,23 @@ public class IstatistiklerPanel extends KaydirilabilirPanel {
                 toplamUyku > 0 ? Tema.sure(toplamUyku) : "0"));
         olcumler.add(new OlcumListesi.Olcum("Büyüme ölçümü",
                 String.valueOf(depo.getBuyumeler().size())));
-        olcumler.add(new OlcumListesi.Olcum("Vitamin / ilaç kaydı",
-                String.valueOf(depo.getIlaclar().size())));
+        int vitamin = 0;
+        for (IlacKayit i : depo.getIlaclar()) {
+            if (i.isVitamin()) {
+                vitamin++;
+            }
+        }
+        olcumler.add(new OlcumListesi.Olcum("Vitamin kaydı", String.valueOf(vitamin)));
+        olcumler.add(new OlcumListesi.Olcum("İlaç kaydı",
+                String.valueOf(depo.getIlaclar().size() - vitamin)));
+        int atesli = 0;
+        for (AtesKayit a : depo.getAtesler()) {
+            if (a.seviye().atesli()) {
+                atesli++;
+            }
+        }
+        olcumler.add(new OlcumListesi.Olcum("Ateş ölçümü",
+                depo.getAtesler().size() + (atesli > 0 ? " (" + atesli + " ateşli)" : "")));
         olcumler.add(new OlcumListesi.Olcum("Bekleyen hatırlatıcı",
                 String.valueOf(depo.bekleyenHatirlatici())));
         olcumler.add(new OlcumListesi.Olcum("Kayıtlı gün sayısı",

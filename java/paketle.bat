@@ -8,13 +8,17 @@ rem
 rem Uyari: uretilen .exe, yolunda Windows ANSI kod sayfasinda bulunmayan bir
 rem karakter (i-noktasiz, g-yumusak, s-cedilla) gecen klasorden calismaz;
 rem bu yuzden varsayilan hedef ASCII bir klasor.
+rem
+rem jdk.localedata sart: Turkce ay/gun adlari ve ondalik virgul o modulden
+rem geliyor. Eksik olursa paketlenmis .exe tarihleri Ingilizce, 38,6 yi 38.6
+rem yazar. --include-locales yalnizca tr ve en verisini alip paketi kucuk tutar.
 setlocal
 cd /d "%~dp0"
 set "KOK=%CD%"
 chcp 65001 >nul
 
 set "AD=Bebek Takip"
-set "SURUM=1.2"
+set "SURUM=1.3"
 set "KURULUM=0"
 set "CIKTI=%USERPROFILE%\BebekTakip"
 
@@ -55,8 +59,8 @@ echo   [4/4] Windows uygulaması paketleniyor (biraz sürer)...
     --main-class com.akansel.bebektakip.App ^
     --icon "build\bebek-takip.ico" ^
     --dest "%CIKTI%" ^
-    --add-modules java.base,java.desktop ^
-    --jlink-options "--strip-debug --no-header-files --no-man-pages" ^
+    --add-modules java.base,java.desktop,jdk.localedata ^
+    --jlink-options "--strip-debug --no-header-files --no-man-pages --include-locales=tr,en" ^
     --java-options "-Dfile.encoding=UTF-8" ^
     --java-options "-Dawt.useSystemAAFontSettings=on" ^
     --java-options "-Dswing.aatext=true"
@@ -93,8 +97,8 @@ echo   [4/4] Kurulum dosyası üretiliyor (WiX gerekir)...
     --main-class com.akansel.bebektakip.App ^
     --icon "build\bebek-takip.ico" ^
     --dest "%CIKTI%" ^
-    --add-modules java.base,java.desktop ^
-    --jlink-options "--strip-debug --no-header-files --no-man-pages" ^
+    --add-modules java.base,java.desktop,jdk.localedata ^
+    --jlink-options "--strip-debug --no-header-files --no-man-pages --include-locales=tr,en" ^
     --java-options "-Dfile.encoding=UTF-8" ^
     --java-options "-Dawt.useSystemAAFontSettings=on" ^
     --java-options "-Dswing.aatext=true" ^

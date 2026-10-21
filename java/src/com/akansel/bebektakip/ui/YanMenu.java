@@ -30,8 +30,10 @@ public class YanMenu extends JPanel {
     public static final String GORUNUM_UYKU = "uyku";
     public static final String GORUNUM_BUYUME = "buyume";
     public static final String GORUNUM_ILAC = "ilac";
+    public static final String GORUNUM_ATES = "ates";
     public static final String GORUNUM_HATIRLATICI = "hatirlatici";
     public static final String GORUNUM_ISTATISTIK = "istatistik";
+    public static final String GORUNUM_RAPOR = "rapor";
 
     public static final int GENISLIK = 220;
 
@@ -63,9 +65,13 @@ public class YanMenu extends JPanel {
         gezinme.add(Box.createVerticalStrut(4));
         gezinme.add(oge(GORUNUM_ILAC, "Vitamin & İlaç", Ikonlar::hap, secim));
         gezinme.add(Box.createVerticalStrut(4));
+        gezinme.add(oge(GORUNUM_ATES, "Ateş Takibi", Ikonlar::termometre, secim));
+        gezinme.add(Box.createVerticalStrut(4));
         gezinme.add(oge(GORUNUM_HATIRLATICI, "Hatırlatıcılar", Ikonlar::zil, secim));
         gezinme.add(Box.createVerticalStrut(4));
         gezinme.add(oge(GORUNUM_ISTATISTIK, "İstatistikler", Ikonlar::trend, secim));
+        gezinme.add(Box.createVerticalStrut(4));
+        gezinme.add(oge(GORUNUM_RAPOR, "Rapor", Ikonlar::yazici, secim));
         gezinme.add(Box.createVerticalGlue());
 
         JPanel orta = new JPanel(new BorderLayout());

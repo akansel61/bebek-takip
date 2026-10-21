@@ -1,16 +1,22 @@
 import com.akansel.bebektakip.depo.KayitDeposu;
+import com.akansel.bebektakip.model.AtesKayit;
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Hatirlatici;
 import com.akansel.bebektakip.model.IlacKayit;
 import com.akansel.bebektakip.model.Kayit;
 import com.akansel.bebektakip.model.UykuKayit;
+import com.akansel.bebektakip.rapor.Donem;
+import com.akansel.bebektakip.rapor.RaporVerisi;
 import com.akansel.bebektakip.ui.AnaPencere;
+import com.akansel.bebektakip.ui.RaporPanel;
 import com.akansel.bebektakip.ui.YanMenu;
+import com.akansel.bebektakip.ui.bilesen.DuzButon;
 import com.akansel.bebektakip.ui.tablo.KayitTabloModeli;
 import com.akansel.bebektakip.ui.tablo.KayitTablosu;
 
 import javax.swing.ActionMap;
 import javax.swing.JComponent;
+import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import java.awt.Component;
@@ -18,9 +24,12 @@ import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.function.Predicate;
 
 /** Gerçek pencere üzerinden işlevsel doğrulama. */
 public class Islev {
@@ -232,6 +241,98 @@ public class Islev {
         kontrol("depoda 10 kayıt", 10, depo.sayi());
         kontrol("özet en fazla 5", 5, ozetModel.getRowCount());
 
+        // ateş takibi
+        System.out.println("[Ateş takibi]");
+        SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_ATES));
+        DuzButon olc = dugme(pencere, "Ateş Ölç");
+        SwingUtilities.invokeAndWait(olc::doClick);
+        Thread.sleep(150);
+        kontrol("ölçüm satırı açıldı", 1, depo.getAtesler().size());
+        JTable atesTablosu = tablo(pencere, t -> t.getColumnCount() == 7
+                && "Derece".equals(t.getColumnName(2)));
+        kontrol("ateş tablosu bulundu", true, atesTablosu != null);
+        SwingUtilities.invokeAndWait(() -> {
+            if (atesTablosu.isEditing()) {
+                atesTablosu.getCellEditor().cancelCellEditing();
+            }
+            atesTablosu.getModel().setValueAt("38,6", 0, 2);
+            atesTablosu.getModel().setValueAt("çok", 0, 2);
+            atesTablosu.getModel().setValueAt("Ateş düşürücü verildi", 0, 5);
+        });
+        AtesKayit olcum = depo.getAtesler().get(0);
+        kontrol("derece girildi", 38.6, olcum.getDerece());
+        kontrol("geçersiz derece yok sayıldı", 38.6, olcum.getDerece());
+        kontrol("ateş seviyesi", AtesKayit.Seviye.ATES, olcum.seviye());
+        kontrol("tabloda virgüllü derece", "38,6", atesTablosu.getModel().getValueAt(0, 2));
+        KayitDeposu atesSonrasi = new KayitDeposu(dizin);
+        atesSonrasi.yukle();
+        kontrol("ateş diske yazıldı", 38.6, atesSonrasi.getAtesler().get(0).getDerece());
+        kontrol("ateş notu diske yazıldı", "Ateş düşürücü verildi",
+                atesSonrasi.getAtesler().get(0).getNot());
+
+        // vitamin / ilaç ayrımı
+        System.out.println("[Vitamin / ilaç türü]");
+        SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_ILAC));
+        SwingUtilities.invokeAndWait(dugme(pencere, "İlaç Ekle")::doClick);
+        Thread.sleep(150);
+        kontrol("ilaç türünde eklendi", IlacKayit.TUR_ILAC, depo.getIlaclar().get(0).getTur());
+        SwingUtilities.invokeAndWait(dugme(pencere, "Vitamin Ekle")::doClick);
+        Thread.sleep(150);
+        JTable ilacTablosu = tablo(pencere, t -> t.getColumnCount() == 7
+                && "Tür".equals(t.getColumnName(2)));
+        SwingUtilities.invokeAndWait(() -> {
+            if (ilacTablosu.isEditing()) {
+                ilacTablosu.getCellEditor().stopCellEditing();
+            }
+        });
+        IlacKayit vitamin = depo.getIlaclar().get(0);
+        kontrol("vitamin türünde eklendi", true, vitamin.isVitamin());
+        kontrol("son vitaminin adı hazır geldi", "D vitamini", vitamin.getAd());
+        kontrol("son vitaminin dozu hazır geldi", "3 damla", vitamin.getDoz());
+        kontrol("tabloda tür", "Vitamin", ilacTablosu.getModel().getValueAt(0, 2));
+
+        // rapor ekranı
+        System.out.println("[Rapor]");
+        eylem(pencere, "gorunum9");
+        Thread.sleep(300);
+        RaporPanel rapor = bul(pencere.getContentPane(), RaporPanel.class);
+        kontrol("rapor ekranı bulundu", true, rapor != null);
+        final int[] sayfa = new int[1];
+        SwingUtilities.invokeAndWait(() -> {
+            rapor.setDonem(Donem.gunluk(LocalDate.now()));
+            sayfa[0] = rapor.sayfaSayisi();
+        });
+        kontrol("günlük rapor tek sayfa", 1, sayfa[0]);
+        Path pdf = dizin.resolve("rapor.pdf");
+        Path xlsx = dizin.resolve("rapor.xlsx");
+        final Exception[] hata = new Exception[1];
+        SwingUtilities.invokeAndWait(() -> {
+            try {
+                rapor.pdfKaydet(pdf);
+                rapor.excelKaydet(xlsx);
+            } catch (Exception e) {
+                hata[0] = e;
+            }
+        });
+        kontrol("rapor yazılırken hata yok", null, hata[0]);
+        byte[] pdfBaslik = Files.readAllBytes(pdf);
+        kontrol("PDF yazıldı", "%PDF", new String(pdfBaslik, 0, 4,
+                java.nio.charset.StandardCharsets.ISO_8859_1));
+        byte[] zipBaslik = Files.readAllBytes(xlsx);
+        kontrol("Excel (zip) yazıldı", true, zipBaslik[0] == 'P' && zipBaslik[1] == 'K');
+        SwingUtilities.invokeAndWait(() -> {
+            rapor.setBolumler(EnumSet.noneOf(RaporVerisi.Bolum.class));
+            sayfa[0] = rapor.sayfaSayisi();
+        });
+        kontrol("bölüm seçilmeyince sayfa yok", 0, sayfa[0]);
+        SwingUtilities.invokeAndWait(() -> {
+            rapor.setBolumler(EnumSet.allOf(RaporVerisi.Bolum.class));
+            rapor.setDonem(rapor.getDonem().onceki());
+        });
+        kontrol("önceki güne geçildi", LocalDate.now().minusDays(1),
+                rapor.getDonem().getBaslangic());
+        SwingUtilities.invokeAndWait(() -> pencere.gorunumeGec(YanMenu.GORUNUM_OZET));
+
         SwingUtilities.invokeAndWait(pencere::dispose);
         System.out.println();
         System.out.println("Başarılı: " + basarili + "  Başarısız: " + basarisiz);
@@ -254,6 +355,43 @@ public class Islev {
             a.actionPerformed(new ActionEvent(pencere, ActionEvent.ACTION_PERFORMED, ad));
         });
         Thread.sleep(120);
+    }
+
+    /** Pencerede verilen metinli ilk düğme. */
+    static DuzButon dugme(AnaPencere pencere, String metin) throws Exception {
+        final DuzButon[] kutu = new DuzButon[1];
+        SwingUtilities.invokeAndWait(() -> kutu[0] = bul(pencere.getContentPane(), DuzButon.class,
+                d -> metin.equals(d.getText()) && d.isShowing()));
+        if (kutu[0] == null) {
+            throw new IllegalStateException("düğme yok: " + metin);
+        }
+        return kutu[0];
+    }
+
+    static JTable tablo(AnaPencere pencere, Predicate<JTable> kosul) throws Exception {
+        final JTable[] kutu = new JTable[1];
+        SwingUtilities.invokeAndWait(() ->
+                kutu[0] = bul(pencere.getContentPane(), JTable.class, kosul));
+        return kutu[0];
+    }
+
+    static <T> T bul(Container k, Class<T> tur) {
+        return bul(k, tur, t -> true);
+    }
+
+    static <T> T bul(Container k, Class<T> tur, Predicate<T> kosul) {
+        for (Component c : k.getComponents()) {
+            if (tur.isInstance(c) && kosul.test(tur.cast(c))) {
+                return tur.cast(c);
+            }
+            if (c instanceof Container) {
+                T t = bul((Container) c, tur, kosul);
+                if (t != null) {
+                    return t;
+                }
+            }
+        }
+        return null;
     }
 
     static void topla(Container k, List<KayitTablosu> hedef) {

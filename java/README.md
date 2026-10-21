@@ -2,12 +2,14 @@
 
 © 2026 by AKANSEL
 
-Bebeğin beslenme, bez, uyku, büyüme, vitamin/ilaç ve hatırlatıcı kayıtlarını tutan
-**saf Java (Swing)** masaüstü uygulaması. HTML, WebView veya tarayıcı motoru
+Bebeğin beslenme, bez, uyku, büyüme, vitamin/ilaç, ateş ve hatırlatıcı kayıtlarını
+tutan, seçilen dönemin raporunu PDF/Excel olarak çıkaran **saf Java (Swing)**
+masaüstü uygulaması. HTML, WebView veya tarayıcı motoru
 kullanılmaz; tüm arayüz native Swing bileşenleriyle çizilir.
 
 - **Dış bağımlılık yok.** Maven/Gradle gerekmez, indirilen hiçbir kütüphane yoktur.
-  JSON okuyucu/yazıcı, ikonlar ve grafikler dahil her şey proje içinde.
+  JSON okuyucu/yazıcı, PDF ve Excel yazıcıları, ikonlar ve grafikler dahil her şey
+  proje içinde.
 - **Veri:** kullanıcı klasöründe her veri türü için ayrı JSON dosyası +
   istenildiğinde CSV dışa aktarım ve tam JSON yedeği.
 - **Dağıtım:** `jpackage` ile kendi Java çalışma zamanını içeren gerçek `.exe`.
@@ -67,12 +69,24 @@ Verdiğiniz yolda da bu karakterler bulunmamalıdır.
   girilen uyku (23:30 → 06:15) ertesi güne sayılır.
 - **Büyüme** — kilo, boy ve baş çevresi. "Yeni Ölçüm" günün tarihiyle boş satır
   açar, değerler hücreye yazılır.
-- **Vitamin & İlaç** — bebeğe verilenlerin günlüğü. "Vitamin / İlaç Ekle" o anın
-  tarih ve saatiyle satır açar; ad, doz ve not hücreye yazılır.
+- **Vitamin & İlaç** — bebeğe verilenlerin günlüğü. "Vitamin Ekle" ve "İlaç Ekle"
+  o anın tarih ve saatiyle satır açar; aynı türün son kaydındaki ad ve doz hazır
+  gelir. Tür hücresine tıklamak vitamin ↔ ilaç geçişi yapar (raporda ayrı
+  bölümlerdir). v1.2'den gelen türsüz kayıtlar adlarına bakılarak ayrılır:
+  adında "vit", "demir", "omega", "probiyotik" gibi bir ipucu geçen vitamin
+  sayılır.
+- **Ateş Takibi** — "Ateş Ölç" o anın saatiyle satır açıp derece hücresine geçer.
+  Derece `38,4`, `38.4` ya da `38,4 °C` yazılabilir; 34–43 °C dışı reddedilir.
+  Ölçüm yeri ve belirtiler hücreye tıklayınca açılan listeden seçilir. Üstteki
+  grafik son 72 saatin ölçümlerini eşik bantlarıyla gösterir; altta ateş
+  sınırları ve doktora başvurulması gereken durumlar yazılıdır.
 - **Hatırlatıcılar** — aşı, ilaç, kontrol. En yakın tarihli üstte durur; soldaki
   kutu işaretlenince tamamlanmış sayılır.
 - **İstatistikler** — son 7 günün kayıt, mama ve uyku grafikleri, gün gün toplam
   mama listesi (son 30 gün) ve genel toplamlar.
+- **Rapor** — Günlük / Haftalık / Aylık / Özel aralık; Mama, Vitamin, İlaç ve Ateş
+  bölümleri ayrı ayrı seçilir. Sayfalar anında önizlenir. "PDF Kaydet", "Excel
+  Kaydet" ve "Yazdır" aynı veriyi kullanır (ayrıntı aşağıda).
 
 ### Tabloda düzenleme
 
@@ -83,8 +97,10 @@ Verdiğiniz yolda da bu karakterler bulunmamalıdır.
 | Saat değiştirme | Hücreye çift tıklayıp `SS:DD` yazın (geçersiz saat kırmızı çerçeveyle reddedilir) |
 | Metin ve sayı alanları | Hücreye çift tıklayıp yazın |
 | Satır silme | Satırın üstüne gelin, sağdaki çöp kutusuna tıklayın (veya **Delete**) |
+| Ölçüm yeri / belirtiler (ateş) | Hücreye tıklayın; belirtilerde birden çok seçim yapılabilir |
+| Vitamin ↔ ilaç | Tür hücresine tıklayın |
 
-Aynı düzen uyku, büyüme, vitamin/ilaç ve hatırlatıcı tablolarında da geçerlidir.
+Aynı düzen uyku, büyüme, vitamin/ilaç, ateş ve hatırlatıcı tablolarında da geçerlidir.
 
 Mama miktarı, mama notundaki ilk sayıdan okunur: `120`, `120 ml`, `90ml`, `7,5`
 yazımlarının hepsi tanınır. Mama kutusu işaretli değilse miktar toplama katılmaz.
@@ -96,8 +112,8 @@ kaydedilir.
 ### Sistem tepsisi
 
 Görev çubuğu tepsisindeki bebek simgesine çift tıklamak pencereyi öne getirir;
-sağ tık menüsünden pencere açılmadan yeni kayıt eklenebilir, uyku ekranına
-geçilebilir veya uygulamadan çıkılabilir.
+sağ tık menüsünden pencere açılmadan yeni kayıt eklenebilir, uyku ya da ateş
+ekranına geçilebilir veya uygulamadan çıkılabilir.
 
 ### Klavye kısayolları
 
@@ -107,7 +123,8 @@ geçilebilir veya uygulamadan çıkılabilir.
 | `Ctrl+F` | Kayıtlar ekranında aramaya git |
 | `Ctrl+S` | Hemen kaydet |
 | `Ctrl+E` | CSV olarak dışa aktar |
-| `Ctrl+1 … 7` | Özet / Kayıtlar / Uyku / Büyüme / Vitamin & İlaç / Hatırlatıcılar / İstatistikler |
+| `Ctrl+1 … 9` | Özet / Kayıtlar / Uyku / Büyüme / Vitamin & İlaç / Ateş / Hatırlatıcılar / İstatistikler / Rapor |
+| `Ctrl+P` | Rapor ekranı |
 | `Boşluk` | Seçili işaret kutusunu değiştir |
 | `Delete` | Seçili satırı sil |
 
@@ -122,8 +139,23 @@ Her veri türü kendi dosyasında tutulur:
 %USERPROFILE%\.bebek-takip\uykular.json           uyku
 %USERPROFILE%\.bebek-takip\buyumeler.json         büyüme ölçümleri
 %USERPROFILE%\.bebek-takip\ilaclar.json           vitamin ve ilaçlar
+%USERPROFILE%\.bebek-takip\atesler.json           ateş ölçümleri
 %USERPROFILE%\.bebek-takip\hatirlaticilar.json    hatırlatıcılar
 ```
+
+Ateş kaydının biçimi:
+
+```json
+{
+  "tarih": "2026-10-20", "saat": "08:15",
+  "derece": 38.6, "olcumYeri": "Kulak",
+  "belirtiler": ["Öksürük", "Burun akıntısı"],
+  "not": "Ateş düşürücü verildi"
+}
+```
+
+Vitamin/ilaç kayıtlarına `"tur": "vitamin"` ya da `"tur": "ilac"` alanı eklendi;
+alanı olmayan eski dosyalar sorunsuz okunur.
 
 Yazma **atomiktir**: önce `.tmp` dosyasına yazılır, sonra yerine taşınır;
 bir önceki sürüm `.bak` olarak saklanır. Dosyalardan biri bozulursa uygulama
@@ -134,10 +166,49 @@ bir önceki sürüm `.bak` olarak saklanır. Dosyalardan biri bozulursa uygulama
 - **CSV** — beslenme kayıtları; noktalı virgülle ayrılmış, BOM'lu UTF-8. Türkçe
   Excel'de çift tıklayınca doğru açılır; sayısal mama miktarı ayrı bir sütun
   olarak da yazılır.
-- **JSON yedek** — dört veri türünü birden içeren tam yedek.
+- **JSON yedek** — bütün veri türlerini (ateş dahil) birden içeren tam yedek.
 - **JSON'dan içe aktar** — yedekleri geri yükler. Eski, yalnızca beslenme içeren
   yedekler ve tarayıcı sürümünün `date`/`time` alan adları da tanınır. İçe
   aktarırken "mevcuda ekle" veya "hepsini değiştir" seçebilirsiniz.
+- **Rapor (PDF / Excel / yazdır)** — rapor ekranını açar.
+
+---
+
+## Rapor
+
+| Dönem | Kapsam |
+|---|---|
+| Günlük | seçilen gün |
+| Haftalık | seçilen günü içeren pazartesi–pazar |
+| Aylık | seçilen günün ayı |
+| Özel aralık | iki tarih arası (oklar aralığı kendi uzunluğu kadar kaydırır) |
+
+İçinde bulunulan dönem bugünde kesilir: ayın raporunda gelecek günler boş satır
+olarak görünmez, ileri tarihli kayıtlar toplama girmez.
+
+**PDF** — A4, dikey. İlk sayfada başlık, hazırlanma zamanı ve özet kutuları;
+ardından gün gün özet tablosu (günlük raporda yok) ve seçilen her bölümün
+ayrıntı tablosu. Aynı günün kayıtları tarih tekrarlanmadan gruplanır, günler
+zemin tonuyla ayrılır. Mama notu yalnızca miktarı tekrar ediyorsa ("120 ml")
+yazılmaz. Ateş satırlarında derece ve durum seviyesine göre renklenir, tablonun
+altında belirtilerin kaç kez görüldüğü yazar. Tablo sayfaya sığmazsa başlık
+satırı tekrarlanarak sonraki sayfada sürer; her sayfanın altında sayfa numarası
+ve telif satırı vardır.
+
+PDF dış kütüphane olmadan yazılır (`rapor/PdfYazici`). Yazı tipi olarak sistemin
+`segoeui.ttf` / `segoeuib.ttf` dosyaları kullanılır (yoksa Arial, Tahoma,
+Calibri denenir); yalnızca raporda geçen glifler alınarak PDF'e gömülür. Böylece
+dosya küçük kalır (haftalık rapor ~35 KB) ve Türkçe harfler yazı tipi kurulu
+olmayan bilgisayarda da doğru görünür. Metin seçilip kopyalanabilir, aranabilir.
+
+**Excel** — `Özet` sayfasında toplamlar ve gün gün tablo (toplam satırı `SUM` /
+`MAX` formülüdür); ardından seçilen her bölüm için ayrı sayfa. Tarih ve saatler
+Excel tarih sayısı olarak yazılır; başlık satırı dondurulmuş, filtre açıktır.
+Ateş sayfasında durum hücresi seviyesine göre renklidir.
+
+**Yazdır** — Windows yazdırma penceresini açar; önizlemede görünen sayfalar
+yazıcının basabildiği alana ölçeklenerek gönderilir. "Microsoft Print to PDF"
+seçilerek de PDF alınabilir.
 
 ---
 
@@ -151,12 +222,23 @@ java/
       Kayit.java                beslenme kaydı + tarih/saat/sayı çözümleme
       UykuKayit.java            uyku kaydı, gece aşan süre hesabı
       BuyumeKayit.java          kilo / boy / baş çevresi ölçümü
-      IlacKayit.java            verilen vitamin / ilaç kaydı
+      IlacKayit.java            verilen vitamin / ilaç kaydı (türüyle)
+      AtesKayit.java            ateş ölçümü, ölçüm yeri, belirtiler, seviye
       Hatirlatici.java          aşı, ilaç, randevu hatırlatması
     depo/
       Json.java                 bağımlılıksız JSON okuyucu/yazıcı
       KayitDeposu.java          yükleme, atomik kaydetme, yedek, sorgular
       DisaAktarim.java          CSV ve JSON dışa/içe aktarım
+    rapor/
+      Donem.java                günlük / haftalık / aylık / özel aralık
+      RaporVerisi.java          dönemin kayıtları, gün gün özet, toplamlar
+      RaporDizici.java          veriyi A4 sayfalara yerleştirir
+      Sayfa.java                sayfanın çizim komutları (yazı, kutu, çizgi)
+      SayfaCizici.java          sayfayı ekrana ve yazıcıya çizer
+      RaporYazisi.java          rapor yazı tipi (sistemden .ttf bulur)
+      TrueTypeYazi.java         .ttf okuma ve glif alt kümesi
+      PdfYazici.java            bağımlılıksız PDF yazıcı
+      ExcelYazici.java          bağımlılıksız .xlsx yazıcı
     ui/
       Tema.java                 renkler, yazı tipleri, Türkçe biçimlendirme
       Ikonlar.java              vektör ikonlar (emoji/resim dosyası yok)
@@ -168,9 +250,13 @@ java/
       UykuPanel.java            uyku ekranı
       BuyumePanel.java          büyüme ekranı
       IlacPanel.java            vitamin ve ilaç ekranı
+      AtesPanel.java            ateş ekranı: grafik, ölçüm tablosu
       HatirlaticiPanel.java     hatırlatıcı ekranı
       IstatistiklerPanel.java   grafikler ve toplamlar
-      bilesen/                  kart, buton, arama, takvim, grafik, boş durum
+      RaporPanel.java           rapor ekranı: dönem, bölümler, önizleme
+      DosyaSecici.java          kaydetme penceresi, kaydedilen dosyayı açma
+      bilesen/                  kart, buton, arama, takvim, grafikler, seçim
+                                listesi, sayfa önizleme, boş durum
       tablo/                    tablo modelleri, hücre çizicileri, tablo davranışı
     arac/IkonUret.java          jpackage için .ico üretimi
   test/                         veri testleri, işlev testleri, ekran görüntüsü aracı
@@ -200,6 +286,12 @@ Arayüzde emoji veya resim dosyası kullanılmaz; bütün ikonlar `Graphics2D` i
   açıkken de şaşmaz.
 - İstatistikler haftalık mama ve uyku grafikleri, gün gün toplam mama listesi,
   toplam mama miktarı, toplam uyku, kayıtlı gün sayısı ve günlük ortalama içerir.
+- Ateş sınırları: 37,5 °C altı normal, 37,5–37,9 hafif yüksek, 38 ve üstü ateş,
+  39 ve üstü yüksek ateş. Uygulama tanı koymaz; ateş ekranındaki not ve rapordaki
+  dipnot bunu açıkça söyler.
+- Rapor tek bir çizim listesinden üretilir: önizleme, yazıcı ve PDF aynı sayfaları
+  çizer. Satır kırılımları PDF'e gömülen yazı tipinin kendi ölçüleriyle hesaplanır;
+  ekranda görülen ile dosyadaki birebir aynıdır.
 
 ---
 
@@ -207,17 +299,22 @@ Arayüzde emoji veya resim dosyası kullanılmaz; bütün ikonlar `Graphics2D` i
 
 `test.bat` iki takım çalıştırır:
 
-- **Veri katmanı (101 kontrol)** — JSON gidiş-dönüşü ve kaçış dizileri, mama miktarı
+- **Veri katmanı (213 kontrol)** — JSON gidiş-dönüşü ve kaçış dizileri, mama miktarı
   çözümleme, eski alan adlarıyla (`date`/`time`) yazılmış dosyaların okunması, atomik
   kaydetme ve yedek, bozuk dosyaya dayanıklılık, gece yarısını aşan uyku süresi,
-  virgüllü ölçü değerleri, vitamin/ilaç kayıtları, beş dosyanın birlikte kaydedilip
-  yüklenmesi, CSV kaçışları ve `.ico` yapısı.
-- **İşlevsel (41 kontrol)** — gerçek pencere ekran dışında açılır; kayıt ekleme,
+  virgüllü ölçü değerleri, vitamin/ilaç kayıtları ve tür tahmini, ateş seviyeleri ve
+  derece çözümleme, altı dosyanın birlikte kaydedilip yüklenmesi, CSV kaçışları,
+  `.ico` yapısı; rapor tarafında dönem hesapları (ay ve yıl aşan haftalar dahil),
+  toplamlar, sayfalara bölme ve taşma, PDF'in xref tablosu ve gömülü yazı
+  tiplerindeki Türkçe glifler, `.xlsx` içindeki her XML'in geçerliliği, tarih
+  sayıları ve formüller.
+- **İşlevsel (61 kontrol)** — gerçek pencere ekran dışında açılır; kayıt ekleme,
   işaretleme, hücre düzenleme, gecikmeli kaydetmenin diske yansıması, arama, silme,
-  uyku/büyüme/ilaç/hatırlatıcı akışları, ekran geçişleri ve özet tablosunun 5 satır
-  sınırı sınanır.
+  uyku/büyüme/ilaç/hatırlatıcı akışları, "Ateş Ölç" ve derece girişi, vitamin/ilaç
+  türüyle ekleme, rapor ekranından PDF ve Excel üretimi, ekran geçişleri ve özet
+  tablosunun 5 satır sınırı sınanır.
 
-`test.bat onizleme` dokuz ekran görüntüsünü PNG olarak üretir (ekranın DPI ölçeği
+`test.bat onizleme` on bir ekran görüntüsünü PNG olarak üretir (ekranın DPI ölçeği
 dikkate alınarak), böylece arayüz değişiklikleri gözle karşılaştırılabilir.
 
 ---

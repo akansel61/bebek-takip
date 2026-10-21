@@ -19,6 +19,8 @@ import java.awt.Graphics2D;
 import java.awt.geom.RoundRectangle2D;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /** Kayıt tablosunun hücre çizicileri ve düzenleyicileri. */
 public final class Hucreler {
@@ -230,6 +232,51 @@ public final class Hucreler {
         }
     }
 
+    /**
+     * Değeri renkli bir hap içinde gösterir (ateş derecesi, vitamin/ilaç
+     * türü gibi). Metin ve renk değerden türetilir; renk null dönerse hap
+     * çizilmez, değer boşsa yer tutucu soluk yazılır.
+     */
+    public static class RozetCizici extends Temel {
+
+        private static final long serialVersionUID = 1L;
+
+        private final Function<Object, String> metin;
+        private final Function<Object, Color> renk;
+        private final String yerTutucu;
+
+        public RozetCizici(Function<Object, String> metin, Function<Object, Color> renk,
+                           String yerTutucu) {
+            this.metin = metin;
+            this.renk = renk;
+            this.yerTutucu = yerTutucu == null ? "" : yerTutucu;
+        }
+
+        @Override
+        protected void icerikCiz(Graphics2D g2) {
+            String m = deger == null ? "" : metin.apply(deger);
+            Color r = deger == null ? null : renk.apply(deger);
+            g2.setFont(Tema.font(13));
+            FontMetrics fm = g2.getFontMetrics();
+            int metinY = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+            if (m == null || m.isEmpty() || r == null) {
+                g2.setColor(Tema.METIN_SOLUK);
+                g2.drawString(m == null || m.isEmpty() ? yerTutucu : m, SOL_BOSLUK, metinY);
+                return;
+            }
+            g2.setFont(Tema.fontKalin(12));
+            fm = g2.getFontMetrics();
+            int genislik = fm.stringWidth(m) + 18;
+            int yukseklik = 24;
+            int x = SOL_BOSLUK - 4;
+            int y = (getHeight() - yukseklik) / 2;
+            g2.setColor(Tema.karistir(r, Color.WHITE, 0.84));
+            g2.fill(new RoundRectangle2D.Double(x, y, genislik, yukseklik, yukseklik, yukseklik));
+            g2.setColor(Tema.karistir(r, Color.BLACK, 0.18));
+            g2.drawString(m, x + 9, y + (yukseklik - fm.getHeight()) / 2 + fm.getAscent());
+        }
+    }
+
     /** Satır üstüne gelince beliren çöp kutusu. */
     public static class SilCizici extends Temel {
 
@@ -258,7 +305,10 @@ public final class Hucreler {
                                                        boolean secili, boolean odakli,
                                                        int satir, int sutun) {
             this.metin = deger == null ? "" : String.valueOf(deger);
-            this.ortala = KayitTabloModeli.onaySutunu(sutun);
+            // Onay kutusu sütunlarının başlığı kutunun üstüne ortalanır.
+            this.ortala = tablo != null && sutun >= 0
+                    && tablo.getColumnModel().getColumn(sutun).getCellRenderer()
+                    instanceof OnayCizici;
             return this;
         }
 
@@ -287,17 +337,25 @@ public final class Hucreler {
         }
     }
 
-    /** Hücre içi metin düzenleyici. */
+    /**
+     * Hücre içi metin düzenleyici. Doğrulama verilmişse geçersiz değerde
+     * kenarlık kırmızıya döner ve düzenleme kapanmaz; boş değer her zaman
+     * kabul edilir.
+     */
     public static class MetinDuzenleyici extends DefaultCellEditor {
 
         private static final long serialVersionUID = 1L;
 
         private final JTextField alan;
-        private final boolean saatAlani;
+        private final Predicate<String> gecerli;
 
         public MetinDuzenleyici(boolean saatAlani) {
+            this(saatAlani ? metin -> Kayit.saatCoz(metin) != null : null);
+        }
+
+        public MetinDuzenleyici(Predicate<String> gecerli) {
             super(new JTextField());
-            this.saatAlani = saatAlani;
+            this.gecerli = gecerli;
             this.alan = (JTextField) getComponent();
             alan.setFont(Tema.font(13));
             alan.setForeground(Tema.METIN);
@@ -319,10 +377,9 @@ public final class Hucreler {
 
         @Override
         public boolean stopCellEditing() {
-            if (saatAlani) {
+            if (gecerli != null) {
                 String metin = alan.getText();
-                if (metin != null && !metin.trim().isEmpty()
-                        && Kayit.saatCoz(metin) == null) {
+                if (metin != null && !metin.trim().isEmpty() && !gecerli.test(metin)) {
                     alan.setBorder(BorderFactory.createCompoundBorder(
                             BorderFactory.createMatteBorder(1, 1, 1, 1, Tema.KIRMIZI),
                             BorderFactory.createEmptyBorder(0, SOL_BOSLUK - 1, 0, 6)));

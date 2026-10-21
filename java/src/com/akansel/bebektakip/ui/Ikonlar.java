@@ -143,6 +143,87 @@ public final class Ikonlar {
         });
     }
 
+    /** Ateş: termometre. */
+    public static void termometre(Graphics2D g0, double x, double y, double boyut, Color renk) {
+        cerceve(g0, x, y, boyut, renk, (g, k) -> {
+            g.setStroke(new BasicStroke(1.9f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            Path2D govde = new Path2D.Double();
+            govde.moveTo(9.6, 14.2);
+            govde.lineTo(9.6, 5.0);
+            govde.curveTo(9.6, 2.0, 14.4, 2.0, 14.4, 5.0);
+            govde.lineTo(14.4, 14.2);
+            govde.curveTo(17.6, 16.0, 16.8, 21.3, 12.0, 21.3);
+            govde.curveTo(7.2, 21.3, 6.4, 16.0, 9.6, 14.2);
+            govde.closePath();
+            g.draw(govde);
+            g.fill(new Ellipse2D.Double(9.7, 15.5, 4.6, 4.6));
+            g.drawLine(12, 9, 12, 16);
+        });
+    }
+
+    /** Rapor: yazıcı. */
+    public static void yazici(Graphics2D g0, double x, double y, double boyut, Color renk) {
+        cerceve(g0, x, y, boyut, renk, (g, k) -> {
+            g.setStroke(new BasicStroke(1.9f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            Path2D ust = new Path2D.Double();
+            ust.moveTo(7.0, 8.5);
+            ust.lineTo(7.0, 3.5);
+            ust.lineTo(17.0, 3.5);
+            ust.lineTo(17.0, 8.5);
+            g.draw(ust);
+            Path2D govde = new Path2D.Double();
+            govde.moveTo(7.0, 17.0);
+            govde.lineTo(4.5, 17.0);
+            govde.curveTo(3.6, 17.0, 3.0, 16.4, 3.0, 15.5);
+            govde.lineTo(3.0, 10.0);
+            govde.curveTo(3.0, 9.1, 3.6, 8.5, 4.5, 8.5);
+            govde.lineTo(19.5, 8.5);
+            govde.curveTo(20.4, 8.5, 21.0, 9.1, 21.0, 10.0);
+            govde.lineTo(21.0, 15.5);
+            govde.curveTo(21.0, 16.4, 20.4, 17.0, 19.5, 17.0);
+            govde.lineTo(17.0, 17.0);
+            g.draw(govde);
+            g.draw(new RoundRectangle2D.Double(7.0, 13.5, 10.0, 7.0, 1.2, 1.2));
+            g.fill(new Ellipse2D.Double(16.6, 10.6, 1.8, 1.8));
+        });
+    }
+
+    /** PDF kaydet: köşesi kıvrık belge. */
+    public static void belge(Graphics2D g0, double x, double y, double boyut, Color renk) {
+        cerceve(g0, x, y, boyut, renk, (g, k) -> {
+            g.setStroke(new BasicStroke(1.9f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            Path2D sayfa = new Path2D.Double();
+            sayfa.moveTo(14.0, 3.0);
+            sayfa.lineTo(6.5, 3.0);
+            sayfa.curveTo(5.6, 3.0, 5.0, 3.6, 5.0, 4.5);
+            sayfa.lineTo(5.0, 19.5);
+            sayfa.curveTo(5.0, 20.4, 5.6, 21.0, 6.5, 21.0);
+            sayfa.lineTo(17.5, 21.0);
+            sayfa.curveTo(18.4, 21.0, 19.0, 20.4, 19.0, 19.5);
+            sayfa.lineTo(19.0, 8.0);
+            sayfa.closePath();
+            g.draw(sayfa);
+            Path2D kivrim = new Path2D.Double();
+            kivrim.moveTo(14.0, 3.0);
+            kivrim.lineTo(14.0, 8.0);
+            kivrim.lineTo(19.0, 8.0);
+            g.draw(kivrim);
+            g.drawLine(8, 13, 16, 13);
+            g.drawLine(8, 17, 13, 17);
+        });
+    }
+
+    /** Excel kaydet: hücreli tablo. */
+    public static void tablo(Graphics2D g0, double x, double y, double boyut, Color renk) {
+        cerceve(g0, x, y, boyut, renk, (g, k) -> {
+            g.setStroke(new BasicStroke(1.9f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.draw(new RoundRectangle2D.Double(3.5, 4.0, 17.0, 16.0, 3.0, 3.0));
+            g.drawLine(4, 9, 20, 9);
+            g.drawLine(4, 14, 20, 14);
+            g.drawLine(10, 4, 10, 20);
+        });
+    }
+
     /** Hatırlatıcı: zil. */
     public static void zil(Graphics2D g0, double x, double y, double boyut, Color renk) {
         cerceve(g0, x, y, boyut, renk, (g, k) -> {

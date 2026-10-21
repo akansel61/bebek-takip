@@ -31,6 +31,7 @@ public final class Tema {
     public static final Color TURUNCU = new Color(0xFF9500);
     public static final Color MOR = new Color(0xAF52DE);
     public static final Color KAHVE = new Color(0xA2845E);
+    public static final Color PEMBE = new Color(0xFF2D55);
     public static final Color SATIR_USTU = new Color(0xF9F9FB);
     /** Çift günlerin satır zemini; günleri ayırt etmek için bir ton koyu. */
     public static final Color SATIR_KOYU = new Color(0xF2F2F5);

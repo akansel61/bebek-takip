@@ -1,6 +1,7 @@
 package com.akansel.bebektakip.ui;
 
 import com.akansel.bebektakip.depo.KayitDeposu;
+import com.akansel.bebektakip.model.AtesKayit;
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Kayit;
 import com.akansel.bebektakip.ui.bilesen.BosDurum;
@@ -19,6 +20,7 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Dimension;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -47,6 +49,8 @@ public class OzetPanel extends KaydirilabilirPanel {
             new IstatistikKarti("Bekleyen hatırlatıcı", "", Tema.KIRMIZI);
     private final IstatistikKarti kartKilo =
             new IstatistikKarti("Son kilo", "kg", Tema.YESIL);
+    private final IstatistikKarti kartAtes =
+            new IstatistikKarti("Son ateş · 24 saat", "°C", Tema.PEMBE);
 
     private final KayitTabloModeli modeli;
     private final KayitTablosu tablo;
@@ -68,6 +72,7 @@ public class OzetPanel extends KaydirilabilirPanel {
         izgara.add(kartUyku);
         izgara.add(kartHatirlatici);
         izgara.add(kartKilo);
+        izgara.add(kartAtes);
         add(izgara, BorderLayout.NORTH);
 
         modeli = new KayitTabloModeli(depo.getKayitlar(), false, true);
@@ -116,6 +121,9 @@ public class OzetPanel extends KaydirilabilirPanel {
         BuyumeKayit son = depo.sonBuyume();
         kartKilo.setDeger(son != null && son.getKilo() > 0
                 ? Tema.sayi(son.getKilo()) : "—");
+
+        AtesKayit ates = depo.sonAtes(LocalDateTime.now(), 24);
+        kartAtes.setDeger(ates == null ? "—" : String.format(Tema.TR, "%.1f", ates.getDerece()));
 
         revalidate();
         repaint();

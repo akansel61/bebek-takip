@@ -1,5 +1,6 @@
 package com.akansel.bebektakip.depo;
 
+import com.akansel.bebektakip.model.AtesKayit;
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Hatirlatici;
 import com.akansel.bebektakip.model.IlacKayit;
@@ -123,7 +124,7 @@ public final class DisaAktarim {
     }
 
     /**
-     * Depodaki bütün verileri (beslenme, uyku, büyüme, hatırlatıcı) tek bir
+     * Depodaki bütün verileri (beslenme, uyku, büyüme, hatırlatıcı, ilaç, ateş) tek bir
      * yedek dosyasına yazar. İçe aktarma bu dosyayı olduğu gibi geri yükler.
      */
     public static void yedekYaz(Path hedef, KayitDeposu depo) throws IOException {
@@ -161,6 +162,12 @@ public final class DisaAktarim {
             ilaclar.add(i.jsonaCevir());
         }
         kok.put("ilaclar", ilaclar);
+
+        List<Object> atesler = new ArrayList<>(depo.getAtesler().size());
+        for (AtesKayit a : depo.getAtesler()) {
+            atesler.add(a.jsonaCevir());
+        }
+        kok.put("atesler", atesler);
 
         Files.write(hedef, Json.yaz(kok).getBytes(StandardCharsets.UTF_8));
     }

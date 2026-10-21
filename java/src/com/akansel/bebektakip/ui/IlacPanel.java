@@ -12,6 +12,7 @@ import com.akansel.bebektakip.ui.tablo.Hucreler;
 import com.akansel.bebektakip.ui.tablo.SadeTablo;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -27,8 +28,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 /**
- * Vitamin ve ilaç ekranı: bebeğe ne verildiyse buraya işlenir. "Ekle" o anın
- * tarih ve saatiyle boş bir satır açar; ad, doz ve not hücrede yazılır.
+ * Vitamin ve ilaç ekranı: bebeğe ne verildiyse buraya işlenir. "Vitamin
+ * Ekle" ve "İlaç Ekle" o anın tarih ve saatiyle yeni bir satır açar; aynı
+ * türün son kaydındaki ad ve doz hazır gelir, çünkü çoğu gün aynı şey
+ * verilir. Tür hücresine tıklamak vitamin/ilaç arasında geçiş yapar;
+ * raporda ikisi ayrı bölümlerde listelenir.
  */
 public class IlacPanel extends JPanel {
 
@@ -36,10 +40,11 @@ public class IlacPanel extends JPanel {
 
     private static final int SUTUN_TARIH = 0;
     private static final int SUTUN_SAAT = 1;
-    private static final int SUTUN_AD = 2;
-    private static final int SUTUN_DOZ = 3;
-    private static final int SUTUN_NOT = 4;
-    private static final int SUTUN_SIL = 5;
+    private static final int SUTUN_TUR = 2;
+    private static final int SUTUN_AD = 3;
+    private static final int SUTUN_DOZ = 4;
+    private static final int SUTUN_NOT = 5;
+    private static final int SUTUN_SIL = 6;
 
     private final KayitDeposu depo;
     private final Model modeli = new Model();
@@ -60,12 +65,20 @@ public class IlacPanel extends JPanel {
         ciziciKur();
         fareKur();
 
-        DuzButon yeniButon = new DuzButon("Vitamin / İlaç Ekle", Ikonlar::hap,
-                DuzButon.Bicim.DOLU);
-        yeniButon.bosluk(13, 8);
-        yeniButon.addActionListener(e -> yeniKayit());
+        DuzButon ilacButonu = new DuzButon("İlaç Ekle", Ikonlar::hap, DuzButon.Bicim.CERCEVELI);
+        ilacButonu.bosluk(13, 8);
+        ilacButonu.addActionListener(e -> yeniKayit(IlacKayit.TUR_ILAC));
 
-        baslik = new PanelBasligi("Vitamin ve İlaçlar", yeniButon);
+        DuzButon vitaminButonu = new DuzButon("Vitamin Ekle", Ikonlar::hap, DuzButon.Bicim.DOLU);
+        vitaminButonu.bosluk(13, 8);
+        vitaminButonu.addActionListener(e -> yeniKayit(IlacKayit.TUR_VITAMIN));
+
+        Box dugmeler = Box.createHorizontalBox();
+        dugmeler.add(ilacButonu);
+        dugmeler.add(Box.createHorizontalStrut(8));
+        dugmeler.add(vitaminButonu);
+
+        baslik = new PanelBasligi("Vitamin ve İlaçlar", dugmeler);
 
         JScrollPane kaydirma = new JScrollPane(tablo);
         kaydirma.setBorder(BorderFactory.createEmptyBorder());
@@ -90,6 +103,10 @@ public class IlacPanel extends JPanel {
                 .setCellRenderer(new Hucreler.TarihCizici(false, true));
         tablo.getColumnModel().getColumn(SUTUN_SAAT)
                 .setCellRenderer(new Hucreler.SaatCizici());
+        tablo.getColumnModel().getColumn(SUTUN_TUR).setCellRenderer(new Hucreler.RozetCizici(
+                String::valueOf,
+                t -> "Vitamin".equals(t) ? Tema.YESIL : Tema.MAVI,
+                ""));
         tablo.getColumnModel().getColumn(SUTUN_AD)
                 .setCellRenderer(new Hucreler.MetinCizici("Vitamin / ilaç adı…", false));
         tablo.getColumnModel().getColumn(SUTUN_DOZ)
@@ -110,6 +127,7 @@ public class IlacPanel extends JPanel {
 
         tablo.sabitSutun(SUTUN_TARIH, 100);
         tablo.sabitSutun(SUTUN_SAAT, 70);
+        tablo.sabitSutun(SUTUN_TUR, 96);
         tablo.esnekSutun(SUTUN_AD, 130, 220);
         tablo.sabitSutun(SUTUN_DOZ, 110);
         tablo.esnekSutun(SUTUN_NOT, 140, 240);
@@ -122,7 +140,7 @@ public class IlacPanel extends JPanel {
             public void mouseMoved(MouseEvent e) {
                 int sutun = tablo.columnAtPoint(e.getPoint());
                 boolean elle = tablo.rowAtPoint(e.getPoint()) >= 0
-                        && (sutun == SUTUN_TARIH || sutun == SUTUN_SIL);
+                        && (sutun == SUTUN_TARIH || sutun == SUTUN_TUR || sutun == SUTUN_SIL);
                 tablo.setCursor(Cursor.getPredefinedCursor(
                         elle ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
             }
@@ -141,6 +159,9 @@ public class IlacPanel extends JPanel {
                     tablo.duzenlemeyiBitir();
                     tablo.setRowSelectionInterval(satir, satir);
                     takvimiAc(satir);
+                } else if (sutun == SUTUN_TUR) {
+                    tablo.duzenlemeyiBitir();
+                    turuDegistir(satir);
                 }
             }
         };
@@ -162,6 +183,17 @@ public class IlacPanel extends JPanel {
         });
     }
 
+    private void turuDegistir(int satir) {
+        IlacKayit kayit = modeli.satirdaki(satir);
+        if (kayit == null) {
+            return;
+        }
+        kayit.setTur(kayit.isVitamin() ? IlacKayit.TUR_ILAC : IlacKayit.TUR_VITAMIN);
+        depo.kaydetIlac();
+        modeli.fireTableRowsUpdated(satir, satir);
+        basligiGuncelle();
+    }
+
     private void silmeyiSor(int satir) {
         IlacKayit kayit = modeli.satirdaki(satir);
         if (kayit == null) {
@@ -177,12 +209,26 @@ public class IlacPanel extends JPanel {
         }
     }
 
-    private void yeniKayit() {
-        depo.ekleIlac(new IlacKayit());
+    private void yeniKayit(String tur) {
+        tablo.duzenlemeyiBitir();
+        IlacKayit yeni = new IlacKayit();
+        yeni.setTur(tur);
+        for (IlacKayit onceki : depo.getIlaclar()) {
+            if (onceki.getTur().equals(tur) && !onceki.getAd().trim().isEmpty()) {
+                yeni.setAd(onceki.getAd());
+                yeni.setDoz(onceki.getDoz());
+                break;
+            }
+        }
+        depo.ekleIlac(yeni);
         yenile();
         if (modeli.getRowCount() > 0) {
             tablo.setRowSelectionInterval(0, 0);
-            SwingUtilities.invokeLater(() -> tablo.editCellAt(0, SUTUN_AD));
+            SwingUtilities.invokeLater(() -> {
+                if (tablo.editCellAt(0, SUTUN_AD) && tablo.getEditorComponent() != null) {
+                    tablo.getEditorComponent().requestFocusInWindow();
+                }
+            });
         }
     }
 
@@ -195,16 +241,29 @@ public class IlacPanel extends JPanel {
     }
 
     private void basligiGuncelle() {
-        int bugun = 0;
+        int vitamin = 0;
+        int ilac = 0;
         LocalDate simdi = LocalDate.now();
         for (IlacKayit i : depo.getIlaclar()) {
             if (i.getTarih().equals(simdi)) {
-                bugun++;
+                if (i.isVitamin()) {
+                    vitamin++;
+                } else {
+                    ilac++;
+                }
             }
         }
-        baslik.setBaslik(bugun > 0
-                ? "Vitamin ve İlaçlar · bugün " + bugun
-                : "Vitamin ve İlaçlar");
+        StringBuilder metin = new StringBuilder("Vitamin ve İlaçlar");
+        if (vitamin + ilac > 0) {
+            metin.append(" · bugün ");
+            if (vitamin > 0) {
+                metin.append(vitamin).append(" vitamin");
+            }
+            if (ilac > 0) {
+                metin.append(vitamin > 0 ? ", " : "").append(ilac).append(" ilaç");
+            }
+        }
+        baslik.setBaslik(metin.toString());
     }
 
     /** Vitamin/ilaç listesinin tablo modeli; doğrudan depodaki listeyi gösterir. */
@@ -213,7 +272,7 @@ public class IlacPanel extends JPanel {
         private static final long serialVersionUID = 1L;
 
         private final String[] basliklar = {
-                "Tarih", "Saat", "Vitamin / İlaç", "Doz", "Not", ""
+                "Tarih", "Saat", "Tür", "Vitamin / İlaç", "Doz", "Not", ""
         };
 
         IlacKayit satirdaki(int satir) {
@@ -255,6 +314,8 @@ public class IlacPanel extends JPanel {
                     return kayit.getTarih();
                 case SUTUN_SAAT:
                     return kayit.getSaat();
+                case SUTUN_TUR:
+                    return kayit.turAdi();
                 case SUTUN_AD:
                     return kayit.getAd();
                 case SUTUN_DOZ:

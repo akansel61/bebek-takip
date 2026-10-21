@@ -1,5 +1,6 @@
 package com.akansel.bebektakip.depo;
 
+import com.akansel.bebektakip.model.AtesKayit;
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Hatirlatici;
 import com.akansel.bebektakip.model.IlacKayit;
@@ -28,7 +29,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Her tür kendi dosyasında durur, %USERPROFILE%\.bebek-takip altında:
  *   beslenme/bez -> kayitlar.json      uyku          -> uykular.json
  *   büyüme       -> buyumeler.json     hatırlatıcı   -> hatirlaticilar.json
- *   vitamin/ilaç -> ilaclar.json
+ *   vitamin/ilaç -> ilaclar.json       ateş          -> atesler.json
  *
  * Yazma atomik: önce .tmp dosyasına yazılır, sonra yerine taşınır. Her
  * başarılı yazmadan önce bir önceki sürüm .bak olarak saklanır.
@@ -49,12 +50,15 @@ public class KayitDeposu {
     private final Path hatirlaticiYedek;
     private final Path ilacDosya;
     private final Path ilacYedek;
+    private final Path atesDosya;
+    private final Path atesYedek;
 
     private final List<Kayit> kayitlar = new ArrayList<>();
     private final List<UykuKayit> uykular = new ArrayList<>();
     private final List<BuyumeKayit> buyumeler = new ArrayList<>();
     private final List<Hatirlatici> hatirlaticilar = new ArrayList<>();
     private final List<IlacKayit> ilaclar = new ArrayList<>();
+    private final List<AtesKayit> atesler = new ArrayList<>();
     private final List<Runnable> dinleyiciler = new CopyOnWriteArrayList<>();
 
     private LocalDateTime sonKayitZamani;
@@ -76,6 +80,8 @@ public class KayitDeposu {
         this.hatirlaticiYedek = dizin.resolve("hatirlaticilar.json.bak");
         this.ilacDosya = dizin.resolve("ilaclar.json");
         this.ilacYedek = dizin.resolve("ilaclar.json.bak");
+        this.atesDosya = dizin.resolve("atesler.json");
+        this.atesYedek = dizin.resolve("atesler.json.bak");
     }
 
     public static Path varsayilanDizin() {
@@ -124,6 +130,10 @@ public class KayitDeposu {
 
     public List<IlacKayit> getIlaclar() {
         return ilaclar;
+    }
+
+    public List<AtesKayit> getAtesler() {
+        return atesler;
     }
 
     public int sayi() {
@@ -196,6 +206,19 @@ public class KayitDeposu {
         }
     }
 
+    public void ekleAtes(AtesKayit a) {
+        atesler.add(0, a);
+        kaydetAtes();
+        degistiBildir();
+    }
+
+    public void silAtes(AtesKayit a) {
+        if (atesler.remove(a)) {
+            kaydetAtes();
+            degistiBildir();
+        }
+    }
+
     public void hepsiniSil() {
         kayitlar.clear();
         kaydet();
@@ -215,6 +238,7 @@ public class KayitDeposu {
                 (UykuKayit u) -> u.getTarih().atTime(u.getBaslangic())).reversed());
         buyumeler.sort(Comparator.comparing(BuyumeKayit::getTarih).reversed());
         ilaclar.sort(Comparator.comparing(IlacKayit::zaman).reversed());
+        atesler.sort(Comparator.comparing(AtesKayit::zaman).reversed());
         // hatırlatıcılar ters değil: en yakın tarih en üstte dursun
         hatirlaticilar.sort(Comparator.comparing(Hatirlatici::zaman));
     }
@@ -227,6 +251,7 @@ public class KayitDeposu {
         buyumeler.clear();
         hatirlaticilar.clear();
         ilaclar.clear();
+        atesler.clear();
 
         String beslenme = dosyaOku(dosya, "Kayıt dosyası okunamadı");
         if (beslenme != null) {
@@ -266,6 +291,14 @@ public class KayitDeposu {
                 ilaclar.addAll(metniCozIlac(ilac));
             } catch (RuntimeException e) {
                 hataEkle("İlaç dosyası okunamadı: " + e.getMessage());
+            }
+        }
+        String ates = dosyaOku(atesDosya, "Ateş dosyası okunamadı");
+        if (ates != null) {
+            try {
+                atesler.addAll(metniCozAtes(ates));
+            } catch (RuntimeException e) {
+                hataEkle("Ateş dosyası okunamadı: " + e.getMessage());
             }
         }
         sirala();
@@ -363,6 +396,16 @@ public class KayitDeposu {
         return sonuc;
     }
 
+    public static List<AtesKayit> metniCozAtes(String metin) {
+        List<AtesKayit> sonuc = new ArrayList<>();
+        for (Object o : adliListe(metin, "atesler")) {
+            if (o instanceof Map) {
+                sonuc.add(AtesKayit.jsondan((Map<?, ?>) o));
+            }
+        }
+        return sonuc;
+    }
+
     private static List<?> adliListe(String metin, String anahtar) {
         String temiz = temizle(metin);
         if (temiz.isEmpty()) {
@@ -426,6 +469,14 @@ public class KayitDeposu {
             veriler.add(i.jsonaCevir());
         }
         return yaz(ilacDosya, ilacYedek, "ilaclar", veriler);
+    }
+
+    public boolean kaydetAtes() {
+        List<Map<String, Object>> veriler = new ArrayList<>(atesler.size());
+        for (AtesKayit a : atesler) {
+            veriler.add(a.jsonaCevir());
+        }
+        return yaz(atesDosya, atesYedek, "atesler", veriler);
     }
 
     private boolean yaz(Path hedef, Path yedegi, String anahtar,
@@ -502,6 +553,24 @@ public class KayitDeposu {
             }
         }
         return n;
+    }
+
+    /**
+     * Verilen andan geriye doğru belirtilen saat içindeki en yeni ateş
+     * ölçümü (derecesi girilmiş olanlar); yoksa null. Saati tabloda yeni
+     * düzeltilmiş bir kayıt sıralamayı bozmuş olabilir, bu yüzden listenin
+     * tamamına bakılır.
+     */
+    public AtesKayit sonAtes(LocalDateTime simdi, int saat) {
+        LocalDateTime sinir = simdi.minusHours(saat);
+        AtesKayit son = null;
+        for (AtesKayit a : atesler) {
+            if (a.getDerece() > 0 && !a.zaman().isBefore(sinir) && !a.zaman().isAfter(simdi)
+                    && (son == null || a.zaman().isAfter(son.zaman()))) {
+                son = a;
+            }
+        }
+        return son;
     }
 
     /** En yeni büyüme ölçümü; hiç ölçüm yoksa null. */

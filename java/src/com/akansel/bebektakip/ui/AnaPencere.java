@@ -2,6 +2,7 @@ package com.akansel.bebektakip.ui;
 
 import com.akansel.bebektakip.depo.DisaAktarim;
 import com.akansel.bebektakip.depo.KayitDeposu;
+import com.akansel.bebektakip.model.AtesKayit;
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Hatirlatici;
 import com.akansel.bebektakip.model.IlacKayit;
@@ -51,7 +52,7 @@ public class AnaPencere extends JFrame {
 
     private static final long serialVersionUID = 1L;
 
-    public static final String SURUM = "v1.2";
+    public static final String SURUM = "v1.3";
 
     private static final DateTimeFormatter SAAT_BICIMI =
             DateTimeFormatter.ofPattern("HH:mm:ss", Tema.TR);
@@ -66,8 +67,10 @@ public class AnaPencere extends JFrame {
     private final UykuPanel uykuPanel;
     private final BuyumePanel buyumePanel;
     private final IlacPanel ilacPanel;
+    private final AtesPanel atesPanel;
     private final HatirlaticiPanel hatirlaticiPanel;
     private final IstatistiklerPanel istatistiklerPanel;
+    private final RaporPanel raporPanel;
 
     private final JLabel tarihEtiketi = new JLabel();
     private final Timer kaydetZamanlayici;
@@ -96,8 +99,10 @@ public class AnaPencere extends JFrame {
         uykuPanel = new UykuPanel(depo);
         buyumePanel = new BuyumePanel(depo);
         ilacPanel = new IlacPanel(depo);
+        atesPanel = new AtesPanel(depo);
         hatirlaticiPanel = new HatirlaticiPanel(depo);
         istatistiklerPanel = new IstatistiklerPanel(depo);
+        raporPanel = new RaporPanel(depo, "Bebek Takip " + SURUM + " · " + Tema.TELIF);
 
         yanMenu = new YanMenu(SURUM, this::gorunumeGec);
 
@@ -108,8 +113,10 @@ public class AnaPencere extends JFrame {
         gorunumKabi.add(uykuPanel, YanMenu.GORUNUM_UYKU);
         gorunumKabi.add(buyumePanel, YanMenu.GORUNUM_BUYUME);
         gorunumKabi.add(ilacPanel, YanMenu.GORUNUM_ILAC);
+        gorunumKabi.add(atesPanel, YanMenu.GORUNUM_ATES);
         gorunumKabi.add(hatirlaticiPanel, YanMenu.GORUNUM_HATIRLATICI);
         gorunumKabi.add(kaydirmaya(istatistiklerPanel), YanMenu.GORUNUM_ISTATISTIK);
+        gorunumKabi.add(raporPanel, YanMenu.GORUNUM_RAPOR);
 
         JPanel ana = new JPanel(new BorderLayout());
         ana.setOpaque(true);
@@ -206,6 +213,9 @@ public class AnaPencere extends JFrame {
         menu.add(menuOgesi("JSON yedek al…", e -> jsonDisaAktar()));
         menu.add(menuOgesi("JSON'dan içe aktar…", e -> jsonIceAktar()));
         menu.addSeparator();
+        menu.add(menuOgesi("Rapor (PDF / Excel / yazdır)…",
+                e -> gorunumeGec(YanMenu.GORUNUM_RAPOR)));
+        menu.addSeparator();
         menu.add(menuOgesi("Veri klasörünü aç", e -> veriKlasorunuAc()));
         menu.addSeparator();
         menu.add(menuOgesi("Hakkında", e -> hakkinda()));
@@ -248,6 +258,13 @@ public class AnaPencere extends JFrame {
             gorunumeGec(YanMenu.GORUNUM_UYKU);
         });
         menu.add(uyku);
+
+        MenuItem ates = new MenuItem("Ateş Takibi");
+        ates.addActionListener(e -> {
+            pencereyiGoster();
+            gorunumeGec(YanMenu.GORUNUM_ATES);
+        });
+        menu.add(ates);
         menu.addSeparator();
 
         MenuItem cikis = new MenuItem("Çıkış");
@@ -290,9 +307,16 @@ public class AnaPencere extends JFrame {
         } else if (YanMenu.GORUNUM_ILAC.equals(anahtar)) {
             depo.sirala();
             ilacPanel.yenile();
+        } else if (YanMenu.GORUNUM_ATES.equals(anahtar)) {
+            depo.sirala();
+            atesPanel.yenile();
         } else if (YanMenu.GORUNUM_HATIRLATICI.equals(anahtar)) {
             depo.sirala();
             hatirlaticiPanel.yenile();
+        } else if (YanMenu.GORUNUM_RAPOR.equals(anahtar)) {
+            bekleyeniYaz();
+            depo.sirala();
+            raporPanel.yenile();
         } else {
             istatistiklerPanel.yenile();
         }
@@ -304,8 +328,10 @@ public class AnaPencere extends JFrame {
         uykuPanel.yenile();
         buyumePanel.yenile();
         ilacPanel.yenile();
+        atesPanel.yenile();
         hatirlaticiPanel.yenile();
         istatistiklerPanel.yenile();
+        raporPanel.yenile();
         sonGuncellemeyiYaz();
     }
 
@@ -364,7 +390,7 @@ public class AnaPencere extends JFrame {
 
     private void csvDisaAktar() {
         bekleyeniYaz();
-        File hedef = dosyaSec("CSV olarak dışa aktar", "bebek-takip-"
+        File hedef = DosyaSecici.kaydetmeYeri(this, "CSV olarak dışa aktar", "bebek-takip-"
                 + LocalDate.now() + ".csv", "CSV dosyası (*.csv)", "csv");
         if (hedef == null) {
             return;
@@ -379,7 +405,7 @@ public class AnaPencere extends JFrame {
 
     private void jsonDisaAktar() {
         bekleyeniYaz();
-        File hedef = dosyaSec("JSON yedek al", "bebek-takip-yedek-"
+        File hedef = DosyaSecici.kaydetmeYeri(this, "JSON yedek al", "bebek-takip-yedek-"
                 + LocalDate.now() + ".json", "JSON dosyası (*.json)", "json");
         if (hedef == null) {
             return;
@@ -388,7 +414,7 @@ public class AnaPencere extends JFrame {
             DisaAktarim.yedekYaz(hedef.toPath(), depo);
             int toplam = depo.sayi() + depo.getUykular().size()
                     + depo.getBuyumeler().size() + depo.getHatirlaticilar().size()
-                    + depo.getIlaclar().size();
+                    + depo.getIlaclar().size() + depo.getAtesler().size();
             bilgiGoster(toplam + " kayıt yedeklendi:\n" + hedef.getAbsolutePath());
         } catch (IOException e) {
             hataGoster("Yedek yazılamadı: " + e.getMessage());
@@ -422,17 +448,19 @@ public class AnaPencere extends JFrame {
         List<BuyumeKayit> gelenBuyume = new ArrayList<>();
         List<Hatirlatici> gelenHatirlatici = new ArrayList<>();
         List<IlacKayit> gelenIlac = new ArrayList<>();
+        List<AtesKayit> gelenAtes = new ArrayList<>();
         try {
             gelenUyku = KayitDeposu.metniCozUyku(metin);
             gelenBuyume = KayitDeposu.metniCozBuyume(metin);
             gelenHatirlatici = KayitDeposu.metniCozHatirlatici(metin);
             gelenIlac = KayitDeposu.metniCozIlac(metin);
+            gelenAtes = KayitDeposu.metniCozAtes(metin);
         } catch (RuntimeException yoksay) {
             // bozuk bölüm içe aktarımı durdurmaz
         }
 
-        int toplam = gelenKayit.size() + gelenUyku.size()
-                + gelenBuyume.size() + gelenHatirlatici.size() + gelenIlac.size();
+        int toplam = gelenKayit.size() + gelenUyku.size() + gelenBuyume.size()
+                + gelenHatirlatici.size() + gelenIlac.size() + gelenAtes.size();
         if (toplam == 0) {
             try {
                 KayitDeposu.metniCoz(metin);
@@ -458,6 +486,9 @@ public class AnaPencere extends JFrame {
         }
         if (!gelenIlac.isEmpty()) {
             ozet.append(gelenIlac.size()).append(" vitamin/ilaç\n");
+        }
+        if (!gelenAtes.isEmpty()) {
+            ozet.append(gelenAtes.size()).append(" ateş ölçümü\n");
         }
 
         Object[] secenekler = {"Mevcuda ekle", "Hepsini değiştir", "İptal"};
@@ -505,33 +536,17 @@ public class AnaPencere extends JFrame {
             depo.getIlaclar().addAll(gelenIlac);
             depo.kaydetIlac();
         }
+        if (!gelenAtes.isEmpty()) {
+            if (degistir) {
+                depo.getAtesler().clear();
+            }
+            depo.getAtesler().addAll(gelenAtes);
+            depo.kaydetAtes();
+        }
         depo.sirala();
         depo.kaydet();
         tumunuYenile();
         bilgiGoster(toplam + " kayıt içe aktarıldı.");
-    }
-
-    private File dosyaSec(String baslik, String varsayilanAd, String aciklama, String uzanti) {
-        JFileChooser secici = new JFileChooser();
-        secici.setDialogTitle(baslik);
-        secici.setSelectedFile(new File(varsayilanAd));
-        secici.setFileFilter(new FileNameExtensionFilter(aciklama, uzanti));
-        if (secici.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
-            return null;
-        }
-        File dosya = secici.getSelectedFile();
-        if (!dosya.getName().toLowerCase(Tema.TR).endsWith("." + uzanti)) {
-            dosya = new File(dosya.getParentFile(), dosya.getName() + "." + uzanti);
-        }
-        if (dosya.exists()) {
-            int cevap = JOptionPane.showConfirmDialog(this,
-                    "Dosya zaten var. Üzerine yazılsın mı?\n" + dosya.getName(),
-                    "Üzerine yaz", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (cevap != JOptionPane.YES_OPTION) {
-                return null;
-            }
-        }
-        return dosya;
     }
 
     private void veriKlasorunuAc() {
@@ -557,6 +572,7 @@ public class AnaPencere extends JFrame {
                         + "Uyku kaydı: " + depo.getUykular().size() + "\n"
                         + "Büyüme ölçümü: " + depo.getBuyumeler().size() + "\n"
                         + "Vitamin/ilaç kaydı: " + depo.getIlaclar().size() + "\n"
+                        + "Ateş ölçümü: " + depo.getAtesler().size() + "\n"
                         + "Hatırlatıcı: " + depo.getHatirlaticilar().size() + "\n\n"
                         + "Veri klasörü:\n" + depo.getDosya().getParent() + "\n\n"
                         + "Java " + System.getProperty("java.version"),
@@ -585,7 +601,9 @@ public class AnaPencere extends JFrame {
             tarihiGuncelle();
             ozetPanel.yenile();
             uykuPanel.yenile();
+            atesPanel.yenile();
             istatistiklerPanel.yenile();
+            raporPanel.yenile();
         }
     }
 
@@ -612,9 +630,15 @@ public class AnaPencere extends JFrame {
         kisayol("gorunum5", KeyStroke.getKeyStroke(KeyEvent.VK_5, ctrl),
                 e -> gorunumeGec(YanMenu.GORUNUM_ILAC));
         kisayol("gorunum6", KeyStroke.getKeyStroke(KeyEvent.VK_6, ctrl),
-                e -> gorunumeGec(YanMenu.GORUNUM_HATIRLATICI));
+                e -> gorunumeGec(YanMenu.GORUNUM_ATES));
         kisayol("gorunum7", KeyStroke.getKeyStroke(KeyEvent.VK_7, ctrl),
+                e -> gorunumeGec(YanMenu.GORUNUM_HATIRLATICI));
+        kisayol("gorunum8", KeyStroke.getKeyStroke(KeyEvent.VK_8, ctrl),
                 e -> gorunumeGec(YanMenu.GORUNUM_ISTATISTIK));
+        kisayol("gorunum9", KeyStroke.getKeyStroke(KeyEvent.VK_9, ctrl),
+                e -> gorunumeGec(YanMenu.GORUNUM_RAPOR));
+        kisayol("rapor", KeyStroke.getKeyStroke(KeyEvent.VK_P, ctrl),
+                e -> gorunumeGec(YanMenu.GORUNUM_RAPOR));
     }
 
     private void kisayol(String ad, KeyStroke tus, java.awt.event.ActionListener eylem) {

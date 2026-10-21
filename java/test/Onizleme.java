@@ -1,4 +1,5 @@
 import com.akansel.bebektakip.depo.KayitDeposu;
+import com.akansel.bebektakip.model.AtesKayit;
 import com.akansel.bebektakip.model.BuyumeKayit;
 import com.akansel.bebektakip.model.Hatirlatici;
 import com.akansel.bebektakip.model.IlacKayit;
@@ -17,7 +18,10 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Pencereyi ekranın dışında gerçekleştirip PNG'ye çizer; böylece yerleşim
@@ -57,14 +61,17 @@ public class Onizleme {
         cek(depo, new String[]{YanMenu.GORUNUM_OZET, YanMenu.GORUNUM_KAYITLAR,
                         YanMenu.GORUNUM_UYKU, YanMenu.GORUNUM_BUYUME,
                         YanMenu.GORUNUM_ILAC, YanMenu.GORUNUM_HATIRLATICI,
-                        YanMenu.GORUNUM_ISTATISTIK},
+                        YanMenu.GORUNUM_ISTATISTIK, YanMenu.GORUNUM_ATES,
+                        YanMenu.GORUNUM_RAPOR},
                 new Path[]{cikti.resolve("3-ozet.png"),
                         cikti.resolve("4-kayitlar.png"),
                         cikti.resolve("5-uyku.png"),
                         cikti.resolve("6-buyume.png"),
                         cikti.resolve("7-vitamin-ilac.png"),
                         cikti.resolve("8-hatirlatici.png"),
-                        cikti.resolve("9-istatistikler.png")});
+                        cikti.resolve("9-istatistikler.png"),
+                        cikti.resolve("10-ates.png"),
+                        cikti.resolve("11-rapor.png")});
 
         System.exit(0);
     }
@@ -205,7 +212,42 @@ public class Onizleme {
             ilac.setAd(p[3]);
             ilac.setDoz(p[4]);
             ilac.setNot(p[5]);
+            ilac.setTur(IlacKayit.turTahmin(p[3]));
             depo.getIlaclar().add(ilac);
+        }
+
+        // Son üç günde geçirilmiş bir ateşli hastalık: önce yükselen, sonra düşen
+        // ateş. Saatler "şu andan geriye" verildi ki grafik, görüntü günün hangi
+        // saatinde çekilirse çekilsin dolu görünsün.
+        Object[][] atesler = {
+                {62, 37.4, ""}, {52, 38.3, "Öksürük,Burun akıntısı"},
+                {46, 38.6, "Öksürük,Burun akıntısı,İştahsızlık"},
+                {40, 37.9, "Öksürük"}, {30, 38.1, "Öksürük,Huzursuzluk"},
+                {20, 37.6, "Öksürük"}, {7, 37.1, ""},
+        };
+        LocalDateTime simdi = LocalDateTime.now().withSecond(0).withNano(0);
+        for (Object[] a : atesler) {
+            LocalDateTime zaman = simdi.minusHours((Integer) a[0]).withMinute(15);
+            double derece = (Double) a[1];
+            AtesKayit k = new AtesKayit();
+            k.setTarih(zaman.toLocalDate());
+            k.setSaat(zaman.toLocalTime());
+            k.setDerece(derece);
+            String belirti = (String) a[2];
+            k.setBelirtiler(belirti.isEmpty() ? List.of() : List.of(belirti.split(",")));
+            k.setOlcumYeri(derece >= 38 ? "Kulak" : "Koltuk altı");
+            if (derece >= 38.5) {
+                k.setNot("Ateş düşürücü verildi");
+                IlacKayit ilac = new IlacKayit();
+                ilac.setTur(IlacKayit.TUR_ILAC);
+                ilac.setTarih(zaman.toLocalDate());
+                ilac.setSaat(zaman.toLocalTime().plusMinutes(5));
+                ilac.setAd("Parasetamol şurup");
+                ilac.setDoz("4 ml");
+                ilac.setNot("Ateş " + String.format(new Locale("tr", "TR"), "%.1f", derece));
+                depo.getIlaclar().add(ilac);
+            }
+            depo.getAtesler().add(k);
         }
 
         depo.sirala();
@@ -213,5 +255,6 @@ public class Onizleme {
         depo.kaydetBuyume();
         depo.kaydetHatirlatici();
         depo.kaydetIlac();
+        depo.kaydetAtes();
     }
 }
